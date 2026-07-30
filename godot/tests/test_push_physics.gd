@@ -21,32 +21,32 @@ func _initialize() -> void:
 func _run() -> void:
 	test_continuous_push_moves_stone_uphill()
 	test_released_push_does_not_script_auto_climb()
-	test_biased_push_offsets_laterally_but_keeps_route_recoverable()
+	test_single_hand_push_offsets_laterally_but_keeps_route_recoverable()
 	test_push_does_not_spin_in_place()
-	test_upward_aim_does_not_lift_the_stone()
+	test_camera_sweep_does_not_change_force()
 
 
 func test_continuous_push_moves_stone_uphill() -> void:
-	var result: Dictionary = _simulate_push(240, 0, true, 0.0)
+	var result: Dictionary = _simulate_push(240, 0, 1.0, 1.0)
 	_expect_true(float(result.max_force_uphill) > 20.0, "continuous push should apply a measurable uphill contact force")
 	_expect_true(absf(result.end_position.x) < 1.2, "straight push should stay near the center route")
 
 
 func test_released_push_does_not_script_auto_climb() -> void:
-	var pushed: Dictionary = _simulate_push(120, 0, true, 0.0)
-	var released: Dictionary = _simulate_push(160, 0, false, 0.0, pushed.end_position, pushed.end_velocity)
+	var pushed: Dictionary = _simulate_push(120, 0, 1.0, 1.0)
+	var released: Dictionary = _simulate_push(160, 0, 0.0, 0.0, pushed.end_position, pushed.end_velocity)
 	var uphill_gain_after_release: float = pushed.end_position.z - released.end_position.z
 	_expect_true(uphill_gain_after_release < 0.25, "released stone should not continue auto-climbing uphill")
 
 
-func test_biased_push_offsets_laterally_but_keeps_route_recoverable() -> void:
-	var result: Dictionary = _simulate_push(240, 0, true, 0.25)
-	_expect_true(absf(float(result.max_side_force)) > 8.0, "biased push should create lateral contact force")
-	_expect_true(absf(result.end_position.x) < 2.75, "biased push should still keep a recoverable route: x %.3f" % result.end_position.x)
+func test_single_hand_push_offsets_laterally_but_keeps_route_recoverable() -> void:
+	var result: Dictionary = _simulate_push(240, 0, 1.0, 0.0)
+	_expect_true(float(result.max_side_force) > 8.0, "left-only push should create rightward contact force")
+	_expect_true(result.end_position.x > 0.15, "left-only push should veer right")
 
 
 func test_push_does_not_spin_in_place() -> void:
-	var result: Dictionary = _simulate_push(240, 0, true, 0.55)
+	var result: Dictionary = _simulate_push(240, 0, 1.0, 0.0)
 	var horizontal_distance := Vector2(
 		result.end_position.x - result.start_position.x,
 		result.end_position.z - result.start_position.z
@@ -56,18 +56,18 @@ func test_push_does_not_spin_in_place() -> void:
 	_expect_true(spin_ratio < 8.0, "push angular speed should remain coupled to linear motion")
 
 
-func test_upward_aim_does_not_lift_the_stone() -> void:
-	var low: Dictionary = _simulate_push(120, 0, true, 0.0, Vector3(INF, INF, INF), Vector3.ZERO, Vector3.ZERO, Vector3.DOWN * 0.3)
-	var high: Dictionary = _simulate_push(120, 0, true, 0.0, Vector3(INF, INF, INF), Vector3.ZERO, Vector3.ZERO, Vector3.UP * 1.1)
-	_expect_true(float(high.max_contact_height) > float(low.max_contact_height) + 0.18, "upward aim should move the contact point upward")
-	_expect_true(float(high.max_force_uphill) > 0.0, "upward aim should still produce slope-aligned contact force without requiring a lift impulse")
+func test_camera_sweep_does_not_change_force() -> void:
+	var left_view: Dictionary = _simulate_push(120, 0, 0.6, 0.9, Vector3(INF, INF, INF), Vector3.ZERO, Vector3.ZERO, Vector3.LEFT * 1.7)
+	var right_view: Dictionary = _simulate_push(120, 0, 0.6, 0.9, Vector3(INF, INF, INF), Vector3.ZERO, Vector3.ZERO, Vector3.RIGHT * 1.7)
+	_expect_true(left_view.end_position.distance_to(right_view.end_position) < 0.0001, "camera sweep should not change the simulated trajectory")
+	_expect_true(left_view.last_force.distance_to(right_view.last_force) < 0.0001, "camera sweep should not change the force vector")
 
 
 func _simulate_push(
 	frames: int,
 	start_z: float,
-	is_pushing: bool,
-	lateral_axis: float,
+	left_strength: float,
+	right_strength: float,
 	start_position: Vector3 = Vector3(INF, INF, INF),
 	start_velocity: Vector3 = Vector3.ZERO,
 	start_angular_velocity: Vector3 = Vector3.ZERO,
@@ -86,18 +86,20 @@ func _simulate_push(
 	var max_force_uphill: float = 0.0
 	var max_side_force: float = 0.0
 	var max_contact_height: float = -INF
+	var last_force: Vector3 = Vector3.ZERO
 	for index in frames:
 		var uphill: Vector3 = mountain.uphill_tangent_at(position.z)
 		var downhill: Vector3 = mountain.downhill_tangent_at(position.z)
 		var player_position: Vector3 = position + downhill * tuning.stone_radius * 1.55
 		player_position.y = mountain.height_at(player_position.z) + 0.05
-		var camera_direction: Vector3 = (uphill + Vector3.RIGHT * lateral_axis * 0.65 + aim_offset).normalized()
-		var frame = PushControllerScript.calculate_push_frame(
+		var camera_direction: Vector3 = (uphill + aim_offset).normalized()
+		var frame = PushControllerScript.calculate_two_hand_push_frame(
 			position,
 			player_position,
+			uphill,
 			camera_direction,
-			is_pushing,
-			lateral_axis,
+			left_strength,
+			right_strength,
 			tuning,
 			mountain
 		)
@@ -105,12 +107,14 @@ func _simulate_push(
 		max_force_uphill = maxf(max_force_uphill, frame.contact_force.dot(uphill))
 		max_side_force = maxf(max_side_force, absf(frame.contact_force.dot(side)))
 		max_contact_height = maxf(max_contact_height, frame.camera_contact_point.y - position.y)
+		last_force = frame.contact_force
 		var gravity: Vector3 = Vector3.DOWN * 9.8 * tuning.stone_mass
 		var normal: Vector3 = mountain.normal_at(position.z)
 		var net_force: Vector3 = frame.contact_force + gravity - normal * gravity.dot(normal)
 		velocity += (net_force / tuning.stone_mass) * dt
 		velocity *= maxf(0.0, 1.0 - tuning.stone_linear_damp * dt)
-		var contact_torque: Vector3 = frame.contact_offset.cross(frame.contact_force)
+		var contact_torque: Vector3 = frame.left_contact_offset.cross(frame.left_force)
+		contact_torque += frame.right_contact_offset.cross(frame.right_force)
 		angular_velocity += (contact_torque / (tuning.stone_mass * tuning.stone_radius * tuning.stone_radius)) * dt
 		var roll_axis: Vector3 = frame.contact_normal.cross(frame.roll_direction)
 		if roll_axis.length_squared() > 0.001:
@@ -130,6 +134,7 @@ func _simulate_push(
 		"max_force_uphill": max_force_uphill,
 		"max_side_force": max_side_force,
 		"max_contact_height": max_contact_height,
+		"last_force": last_force,
 	}
 
 

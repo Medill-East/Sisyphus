@@ -144,12 +144,14 @@ func test_player_input_push_segment_keeps_contact_and_moves_uphill() -> void:
 	var start_z: float = slice.stone.global_position.z
 	var max_contact_distance: float = 0.0
 	Input.action_press("move_forward")
-	Input.action_press("push")
+	Input.action_press("push_left")
+	Input.action_press("push_right")
 	for index in 540:
 		await physics_frame
 		max_contact_distance = maxf(max_contact_distance, slice.player.global_position.distance_to(slice.stone.global_position))
 	Input.action_release("move_forward")
-	Input.action_release("push")
+	Input.action_release("push_left")
+	Input.action_release("push_right")
 
 	_expect_true(slice.stone.global_position.z < start_z - 1.1, "holding W should move the stone uphill through player control")
 	_expect_true(slice.player.push_engaged, "player-controlled push should remain engaged while W is held")
@@ -168,7 +170,8 @@ func test_player_input_front_base_route_completes_full_loop_with_descent_steerin
 	slice.player.set_physics_process(true)
 	var start_player_position: Vector3 = slice.player.global_position
 	Input.action_press("move_forward")
-	Input.action_press("push")
+	Input.action_press("push_left")
+	Input.action_press("push_right")
 	for index in 8000:
 		if slice.game_state.phase == GameStateScript.Phase.DESCENT:
 			_aim_player_toward_stone(slice)
@@ -176,7 +179,8 @@ func test_player_input_front_base_route_completes_full_loop_with_descent_steerin
 		if slice.game_state.phase == GameStateScript.Phase.COMPLETE:
 			break
 	Input.action_release("move_forward")
-	Input.action_release("push")
+	Input.action_release("push_left")
+	Input.action_release("push_right")
 
 	_expect_true(
 		slice.game_state.phase == GameStateScript.Phase.COMPLETE,

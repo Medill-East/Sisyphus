@@ -358,11 +358,13 @@ func test_complete_phase_locks_player_until_transition() -> void:
 	main.player.camera_push_blend = 1.0
 	var start_position: Vector3 = main.player.global_position
 	Input.action_press("move_forward")
-	Input.action_press("push")
+	Input.action_press("push_left")
+	Input.action_press("push_right")
 	for index in 60:
 		await physics_frame
 	Input.action_release("move_forward")
-	Input.action_release("push")
+	Input.action_release("push_left")
+	Input.action_release("push_right")
 	var horizontal_delta := Vector2(
 		main.player.global_position.x - start_position.x,
 		main.player.global_position.z - start_position.z

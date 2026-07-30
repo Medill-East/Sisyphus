@@ -183,6 +183,45 @@ func route_progress_status() -> Dictionary:
 	}
 
 
+func evaluate_two_hand_topology() -> Dictionary:
+	var stone_position: Vector3 = stone.global_position
+	var uphill: Vector3 = mountain.uphill_tangent_at(stone_position.z)
+	var side: Vector3 = Vector3(-uphill.z, 0.0, uphill.x).normalized()
+	var downhill: Vector3 = mountain.downhill_tangent_at(stone_position.z)
+	var player_position: Vector3 = stone_position + downhill * tuning.stone_radius * 1.55
+	player_position.y = mountain.height_at(player_position.z) + 0.05
+	var camera_left: Vector3 = (uphill + side * -1.6 + Vector3.UP * 0.4).normalized()
+	var camera_right: Vector3 = (uphill + side * 1.6 + Vector3.DOWN * 0.3).normalized()
+	var left_only = PushControllerScript.calculate_two_hand_push_frame(
+		stone_position, player_position, uphill, uphill, 1.0, 0.0, tuning, mountain
+	)
+	var right_only = PushControllerScript.calculate_two_hand_push_frame(
+		stone_position, player_position, uphill, uphill, 0.0, 1.0, tuning, mountain
+	)
+	var balanced = PushControllerScript.calculate_two_hand_push_frame(
+		stone_position, player_position, uphill, camera_left, 1.0, 1.0, tuning, mountain
+	)
+	var swept = PushControllerScript.calculate_two_hand_push_frame(
+		stone_position, player_position, uphill, camera_right, 1.0, 1.0, tuning, mountain
+	)
+	return {
+		"success": (
+			left_only.contact_force.dot(side) > 0.0
+			and right_only.contact_force.dot(side) < 0.0
+			and absf(balanced.contact_force.dot(side)) < 0.001
+			and balanced.contact_force.distance_to(swept.contact_force) < 0.0001
+		),
+		"left_only_side_force": left_only.contact_force.dot(side),
+		"right_only_side_force": right_only.contact_force.dot(side),
+		"balanced_side_force": absf(balanced.contact_force.dot(side)),
+		"left_only_torque": left_only.left_torque.length(),
+		"right_only_torque": right_only.right_torque.length(),
+		"camera_force_delta": balanced.contact_force.distance_to(swept.contact_force),
+		"left_load": left_only.left_load,
+		"right_load": right_only.right_load,
+	}
+
+
 func enter_first_person_push_observation(aim_bias: Vector3 = Vector3.ZERO) -> void:
 	if stone == null or player == null or mountain == null:
 		return
@@ -1507,7 +1546,7 @@ func _update_hud() -> void:
 	]
 	if _debug_visible:
 		status_label.text += " | DEBUG VECTORS"
-	controls_label.text = "W sustain push | S disengage | A/D move body | mouse or Q/E aim | Up/Down look\nRidge posts mark the end of the climb. 1 heavy  2 standard  3 light  R reset  F3 debug-only colored vectors."
+	controls_label.text = "LT/RT push each hand | mouse L/R = full fallback | S disengage | A/D footwork only | mouse/right stick look\nRidge posts mark the end of the climb. 1 heavy  2 standard  3 light  R reset  F3 debug-only colored vectors."
 
 
 func _stone_uphill_velocity() -> float:

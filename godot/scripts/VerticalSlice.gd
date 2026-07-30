@@ -526,7 +526,8 @@ func _advance_gameplay_state(delta: float) -> void:
 		level_manager.metrics.ascent_seconds += delta
 		level_manager.metrics.contact_stability = maxf(level_manager.metrics.contact_stability, _contact_stability())
 	var wants_push: bool = game_state.phase == GameStateScript.Phase.ASCENT and (
-		Input.is_action_pressed("push") or visual_mode == "route"
+		maxf(Input.get_action_strength("push_left"), Input.get_action_strength("push_right")) > 0.001
+		or visual_mode == "route"
 	)
 	route_telemetry.sample(
 		delta,

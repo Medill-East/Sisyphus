@@ -45,8 +45,12 @@ For visual verification:
 ## Current gameplay priorities
 - First vertical slice only: double-sided mountain, continuous stone pushing, close shoulder camera, descent loop.
 - Push feel matters more than visual polish.
-- The player should not feel glued to the stone. Holding `W` should sustain pushing; releasing or backing away should smoothly disengage.
-- Camera aim should control hand contact and push direction, while physics must avoid launching the stone upward or spinning in place.
+- The player should not feel glued to the stone. Holding either hand trigger should sustain that hand's push; releasing both or backing away should smoothly disengage.
+- Camera look is independent from force. Body facing plus per-hand contact geometry controls force, while A/D remains footwork only.
+
+## Latest project journal
+- Start with [`docs/journal/2026-07-31-two-hand-push-summary.md`](docs/journal/2026-07-31-two-hand-push-summary.md).
+- Open its linked sanitized transcript only when exact session context or rejected alternatives are needed.
 
 ## Codex Game Studios workflow
 - CCGS is installed project-locally under `.agents/skills/ccgs-*`, `.codex/agents/ccgs-*`, `.codex/rules`, `docs/studio`, and `production`.

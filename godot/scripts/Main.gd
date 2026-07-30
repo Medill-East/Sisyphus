@@ -148,9 +148,9 @@ func _update_hud() -> void:
 
 	match game_state.phase:
 		GameStateScript.Phase.APPROACH:
-			prompt_label.text = "WASD move. Mouse/trackpad drag or Q/E turns. Walk to the stone. F3 shows debug-only force vectors."
+			prompt_label.text = "WASD move. Mouse/right stick looks freely. Walk to the stone. F3 shows debug-only force vectors."
 		GameStateScript.Phase.ASCENT:
-			prompt_label.text = "Hold W to keep pushing. Your camera center is where both hands press."
+			prompt_label.text = "Hold LT/RT for each hand. Mouse left/right is full-force fallback. A/D is footwork only."
 		GameStateScript.Phase.RELEASE:
 			prompt_label.text = "The stone is crossing the ridge. Let gravity take it."
 		GameStateScript.Phase.DESCENT:

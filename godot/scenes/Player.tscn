@@ -117,3 +117,13 @@ surface_material_override/0 = SubResource("StandardMaterial3D_body")
 
 [node name="ContactCue" type="Node3D" parent="."]
 script = ExtResource("3_contact_cue")
+
+[node name="LeftScrapeAudio" type="AudioStreamPlayer3D" parent="."]
+position = Vector3(-0.42, 1.0, -0.35)
+volume_db = -60.0
+unit_size = 2.0
+
+[node name="RightScrapeAudio" type="AudioStreamPlayer3D" parent="."]
+position = Vector3(0.42, 1.0, -0.35)
+volume_db = -60.0
+unit_size = 2.0

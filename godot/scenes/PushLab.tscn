@@ -55,7 +55,7 @@ offset_top = 122.0
 offset_right = 1240.0
 offset_bottom = 176.0
 label_settings = SubResource("LabelSettings_lab")
-text = "W sustain push. F3 force debug."
+text = "LT/RT push each hand. Mouse L/R is binary fallback. F3 force debug."
 
 [node name="CenterReticle" type="Control" parent="HUD"]
 layout_mode = 3

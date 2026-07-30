@@ -23,6 +23,8 @@ var _hand_materials: Array[StandardMaterial3D] = []
 var _arm_materials: Array[StandardMaterial3D] = []
 var _takeover_ready: bool = true
 var _palm_compression: float = 0.0
+var _left_hand_load: float = 0.0
+var _right_hand_load: float = 0.0
 
 
 func _ready() -> void:
@@ -57,6 +59,13 @@ func feedback_tint() -> Color:
 
 func palm_compression() -> float:
 	return _palm_compression
+
+
+func set_hand_loads(left_load: float, right_load: float) -> void:
+	_left_hand_load = clampf(left_load, 0.0, 1.0)
+	_right_hand_load = clampf(right_load, 0.0, 1.0)
+	var motion_compression: float = _target_palm_compression(_left_hand_load > 0.001 or _right_hand_load > 0.001)
+	_apply_palm_shape(maxf(motion_compression, maxf(_left_hand_load, _right_hand_load) * 0.34))
 
 
 func update_from_camera(
@@ -167,18 +176,20 @@ func _target_palm_compression(has_contact_targets: bool) -> float:
 
 func _apply_palm_shape(compression: float) -> void:
 	_palm_compression = clampf(compression, 0.0, 1.0)
-	var side_widen: float = 1.0 + _palm_compression * 0.50
-	var forward_widen: float = 1.0 + _palm_compression * 0.20
-	var flatten: float = 1.0 - _palm_compression * 0.36
-	var target_scale := Vector3(
-		BASE_HAND_SCALE.x * side_widen,
-		BASE_HAND_SCALE.y * flatten,
-		BASE_HAND_SCALE.z * forward_widen
-	)
+	var left_compression: float = _palm_compression * _left_hand_load
+	var right_compression: float = _palm_compression * _right_hand_load
 	if _left_hand != null:
-		_left_hand.scale = target_scale
+		_left_hand.scale = _hand_scale_for_compression(left_compression)
 	if _right_hand != null:
-		_right_hand.scale = target_scale
+		_right_hand.scale = _hand_scale_for_compression(right_compression)
+
+
+func _hand_scale_for_compression(compression: float) -> Vector3:
+	return Vector3(
+		BASE_HAND_SCALE.x * (1.0 + compression * 0.50),
+		BASE_HAND_SCALE.y * (1.0 - compression * 0.36),
+		BASE_HAND_SCALE.z * (1.0 + compression * 0.20)
+	)
 
 
 func _motion_feedback_targets(flat_forward: Vector3, right: Vector3, left_target: Vector3, right_target: Vector3) -> Array[Vector3]:

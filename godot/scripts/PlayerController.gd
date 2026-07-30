@@ -68,6 +68,8 @@ var push_frame
 @onready var _right_hand: MeshInstance3D = $Body/RightArm/Hand
 @onready var _first_person_hands: Node3D = $FirstPersonHands
 @onready var _contact_cue: Node3D = $ContactCue
+@onready var _left_scrape_audio: AudioStreamPlayer3D = $LeftScrapeAudio
+@onready var _right_scrape_audio: AudioStreamPlayer3D = $RightScrapeAudio
 
 var _walk_time: float = 0.0
 var _is_walking: bool = false
@@ -80,6 +82,13 @@ var push_contact_seconds: float = 0.0
 var push_brace: float = 0.0
 var push_aim_speed: float = 0.0
 var _previous_push_aim: Vector3 = Vector3.ZERO
+var push_left_strength: float = 0.0
+var push_right_strength: float = 0.0
+var left_haptic_level: float = 0.0
+var right_haptic_level: float = 0.0
+
+const SCRAPE_SAMPLE_RATE := 11025
+const SCRAPE_SAMPLE_COUNT := 2048
 
 
 static func calculate_arm_pose(time: float, is_walking: bool, near_stone: bool, aim_direction: Vector3, tuning) -> ArmPose:
@@ -224,6 +233,15 @@ static func _solve_arm_chain(shoulder: Vector3, desired_hand: Vector3, side_sign
 	return [elbow, hand]
 
 
+func _ready() -> void:
+	var scrape_stream: AudioStreamWAV = _build_scrape_stream()
+	_left_scrape_audio.stream = scrape_stream
+	_right_scrape_audio.stream = scrape_stream
+	_left_scrape_audio.play()
+	_right_scrape_audio.play()
+	apply_per_hand_feedback_levels(0.0, 0.0)
+
+
 func setup(next_tuning, next_mountain, next_state, next_stone: RigidBody3D, next_camera: Camera3D) -> void:
 	tuning = next_tuning
 	mountain = next_mountain
@@ -231,6 +249,51 @@ func setup(next_tuning, next_mountain, next_state, next_stone: RigidBody3D, next
 	stone = next_stone
 	camera = next_camera
 	update_push_visual_mode()
+
+
+func _build_scrape_stream() -> AudioStreamWAV:
+	var stream := AudioStreamWAV.new()
+	var pcm := PackedByteArray()
+	pcm.resize(SCRAPE_SAMPLE_COUNT * 2)
+	for index in SCRAPE_SAMPLE_COUNT:
+		var grain: float = sin(float(index) * 0.73) * 0.55
+		grain += sin(float(index) * 1.91) * 0.30
+		grain += sin(float(index) * 0.17) * 0.15
+		pcm.encode_s16(index * 2, int(clampf(grain, -1.0, 1.0) * 5200.0))
+	stream.format = AudioStreamWAV.FORMAT_16_BITS
+	stream.mix_rate = SCRAPE_SAMPLE_RATE
+	stream.stereo = false
+	stream.loop_mode = AudioStreamWAV.LOOP_FORWARD
+	stream.loop_begin = 0
+	stream.loop_end = SCRAPE_SAMPLE_COUNT
+	stream.data = pcm
+	return stream
+
+
+func apply_per_hand_feedback_levels(left_level: float, right_level: float) -> void:
+	left_haptic_level = clampf(left_level, 0.0, 1.0)
+	right_haptic_level = clampf(right_level, 0.0, 1.0)
+	if _left_scrape_audio != null:
+		_left_scrape_audio.volume_db = lerpf(-60.0, -12.0, left_haptic_level)
+	if _right_scrape_audio != null:
+		_right_scrape_audio.volume_db = lerpf(-60.0, -12.0, right_haptic_level)
+	if not Input.get_connected_joypads().is_empty():
+		Input.start_joy_vibration(0, left_haptic_level, right_haptic_level, 0.08)
+
+
+func _update_per_hand_feedback() -> void:
+	var left_level: float = 0.0
+	var right_level: float = 0.0
+	if push_frame != null and push_frame.contact_valid:
+		left_level = push_frame.left_scrape_level
+		right_level = push_frame.right_scrape_level
+	apply_per_hand_feedback_levels(left_level, right_level)
+	if _first_person_hands != null and _first_person_hands.has_method("set_hand_loads"):
+		_first_person_hands.call(
+			"set_hand_loads",
+			push_frame.left_load if push_frame != null and push_frame.contact_valid else 0.0,
+			push_frame.right_load if push_frame != null and push_frame.contact_valid else 0.0
+		)
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -260,9 +323,10 @@ func _physics_process(delta: float) -> void:
 	var stone_distance: float = global_position.distance_to(stone_position)
 	_near_stone = stone_distance <= tuning.contact_distance + 0.55
 	var pushing_phase: bool = game_state.phase == GameStateScript.Phase.ASCENT
-	var wants_push: bool = Input.is_action_pressed("push")
+	push_left_strength = Input.get_action_strength("push_left")
+	push_right_strength = Input.get_action_strength("push_right")
+	var wants_push: bool = maxf(push_left_strength, push_right_strength) > 0.001
 	var wants_back: bool = Input.is_action_pressed("move_backward")
-	var lateral: float = Input.get_axis("move_left", "move_right")
 
 	if pushing_phase and stone != null:
 		push_engaged = should_engage_push(
@@ -287,20 +351,20 @@ func _physics_process(delta: float) -> void:
 	if push_engaged:
 		_constrain_push_look(stone_position)
 	var camera_direction: Vector3 = _camera_forward()
-	push_aim_speed = calculate_aim_speed(_previous_push_aim, camera_direction, delta) if push_input else 0.0
+	push_aim_speed = 0.0
 	var brace_target_value: float = 0.0
 	if push_input and stone != null:
-		var brace_preview = calculate_reticle_aligned_push_frame(
+		var brace_preview = calculate_two_hand_push_frame(
 			camera_direction,
-			true,
-			lateral,
+			push_left_strength,
+			push_right_strength,
 			push_contact_seconds,
 			1.0
 		)
 		if brace_preview != null and brace_preview.contact_valid:
-			brace_target_value = PushControllerScript.brace_target(brace_preview.contact_quality, push_aim_speed, tuning)
+			brace_target_value = PushControllerScript.brace_target(brace_preview.contact_quality, 0.0, tuning)
 	push_brace = PushControllerScript.update_brace(push_brace, brace_target_value, push_input, delta, tuning)
-	_previous_push_aim = camera_direction if push_input else Vector3.ZERO
+	_previous_push_aim = Vector3.ZERO
 	var camera_should_close: bool = push_engaged and push_contact_seconds >= tuning.push_camera_entry_min_contact_seconds
 	camera_push_blend = calculate_camera_blend(camera_push_blend, camera_should_close, delta, tuning)
 
@@ -310,8 +374,14 @@ func _physics_process(delta: float) -> void:
 		if push_input and stone.freeze:
 			stone.freeze = false
 			stone.sleeping = false
-		push_frame = apply_reticle_aligned_push(camera_direction, push_input, lateral, push_contact_seconds, push_brace)
-		push_frame.aim_stability = PushControllerScript.aim_stability(push_aim_speed, tuning)
+		push_frame = apply_two_hand_push(
+			camera_direction,
+			push_left_strength if push_input else 0.0,
+			push_right_strength if push_input else 0.0,
+			push_contact_seconds,
+			push_brace
+		)
+		push_frame.aim_stability = 1.0
 		if not push_frame.contact_valid:
 			push_contact_seconds = 0.0
 			push_brace = PushControllerScript.update_brace(push_brace, 0.0, push_input, delta, tuning)
@@ -321,6 +391,7 @@ func _physics_process(delta: float) -> void:
 	_update_arm_visual(delta, visual_camera_direction)
 	_update_camera(delta, stone_position, visual_camera_direction, push_engaged)
 	_update_first_person_hands(visual_camera_direction)
+	_update_per_hand_feedback()
 
 
 func _hold_complete_pose(delta: float) -> void:
@@ -338,6 +409,7 @@ func _hold_complete_pose(delta: float) -> void:
 	if stone != null:
 		_update_camera(delta, stone.global_position, camera_direction, false)
 	_update_first_person_hands(camera_direction)
+	_update_per_hand_feedback()
 
 
 func _move(delta: float, push_input: bool, pushing_phase: bool, is_push_engaged: bool) -> void:
@@ -357,13 +429,13 @@ func _move(delta: float, push_input: bool, pushing_phase: bool, is_push_engaged:
 			var stride: float = PushControllerScript.burden_stride_multiplier(push_contact_seconds, tuning)
 			var body_commit: float = lerpf(0.58, 1.0, push_brace)
 			input += forward * lerpf(0.26, 0.54, stride) * body_commit
-			var aim_flat := Vector3(_camera_forward().x, 0.0, _camera_forward().z)
-			if aim_flat.length_squared() > 0.001:
-				input += right * clampf(aim_flat.normalized().dot(right), -1.0, 1.0) * 0.34
 			var contact_correction: Vector3 = _push_reacquire_input()
 			if contact_correction.length_squared() > 0.001 and global_position.distance_to(stone.global_position) > tuning.stone_radius * 2.35:
 				input += contact_correction * 0.12
-	elif pushing_phase and Input.is_action_pressed("push") and stone != null:
+	elif pushing_phase and maxf(
+		Input.get_action_strength("push_left"),
+		Input.get_action_strength("push_right")
+	) > 0.001 and stone != null:
 		var reacquire_input: Vector3 = _push_reacquire_input()
 		if reacquire_input.length_squared() > 0.001:
 			input += reacquire_input
@@ -539,6 +611,66 @@ func apply_reticle_aligned_push(
 	)
 
 
+func calculate_two_hand_push_frame(
+	camera_direction: Vector3,
+	left_strength: float,
+	right_strength: float,
+	push_hold_seconds: float,
+	brace_amount: float = 1.0
+):
+	if stone == null:
+		return null
+	return PushControllerScript.calculate_two_hand_push_frame(
+		stone.global_position,
+		global_position,
+		_body_push_direction(),
+		camera_direction,
+		left_strength,
+		right_strength,
+		tuning,
+		mountain,
+		push_hold_seconds,
+		brace_amount
+	)
+
+
+func apply_two_hand_push(
+	camera_direction: Vector3,
+	left_strength: float,
+	right_strength: float,
+	push_hold_seconds: float,
+	brace_amount: float = 1.0
+):
+	if stone == null:
+		return null
+	return PushControllerScript.apply_two_hand_push(
+		stone,
+		global_position,
+		_body_push_direction(),
+		camera_direction,
+		left_strength,
+		right_strength,
+		tuning,
+		mountain,
+		push_hold_seconds,
+		brace_amount
+	)
+
+
+func _body_push_direction() -> Vector3:
+	if stone == null:
+		return Vector3(0.0, 0.0, -1.0)
+	var body_to_stone := Vector3(
+		stone.global_position.x - global_position.x,
+		0.0,
+		stone.global_position.z - global_position.z
+	)
+	var uphill: Vector3 = mountain.uphill_tangent_at(stone.global_position.z) if mountain != null else Vector3(0.0, 0.0, -1.0)
+	if body_to_stone.length_squared() < 0.001:
+		return uphill
+	return (body_to_stone.normalized() + Vector3.UP * uphill.y).normalized()
+
+
 func _refined_reticle_camera_origin(
 	camera_direction: Vector3,
 	is_pushing: bool,
@@ -630,6 +762,8 @@ func reset_to_third_person_idle_pose() -> void:
 	push_brace = 0.0
 	push_aim_speed = 0.0
 	_previous_push_aim = Vector3.ZERO
+	push_left_strength = 0.0
+	push_right_strength = 0.0
 	_near_stone = false
 	_stone_reach_blend = 0.0
 	_is_walking = false

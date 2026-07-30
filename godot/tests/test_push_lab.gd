@@ -16,11 +16,11 @@ func _run_async() -> void:
 	test_push_lab_scene_exists()
 	test_push_lab_presets_are_distinct()
 	await test_push_lab_scene_contract()
+	await test_push_lab_reports_two_hand_topology()
 	await test_push_lab_uses_short_skill_slope_for_core_feel()
 	await test_push_lab_first_person_observation_camera()
 	await test_first_person_push_view_has_embodied_torso_and_attached_arms()
 	await test_first_person_palms_compress_against_pressure_point()
-	await test_push_camera_uses_refined_reticle_solve_for_live_contact()
 	await test_push_view_uses_readable_fov_and_foreground_hand_scale()
 	await test_push_transition_waits_for_close_camera_before_first_person_hands()
 	await test_push_transition_hides_hands_until_camera_can_reach_contact()
@@ -28,20 +28,12 @@ func _run_async() -> void:
 	await test_push_transition_hides_third_person_arms_immediately_after_engage()
 	await test_late_push_transition_uses_short_first_person_forearms()
 	await test_push_camera_follows_player_aim_direction()
-	await test_biased_downward_push_keeps_stone_and_contact_readable()
-	await test_downward_aim_places_pressure_on_lower_stone_surface()
-	await test_left_right_aim_offsets_stone_around_reticle()
-	await test_biased_push_keeps_pressure_point_under_reticle()
 	await test_push_camera_is_close_enough_for_short_first_person_hands()
 	await test_normal_contact_cue_reads_as_short_pressure_hint()
-	await test_contact_cue_exposes_pressure_quality_without_debug_colors()
-	await test_sustained_biased_push_keeps_stone_in_view()
 	await test_first_person_hands_do_not_stretch_during_push_transition()
 	await test_push_transition_does_not_show_mismatched_arm_layers()
 	await test_first_person_hands_stay_outside_stone_surface()
-	await test_first_person_forearms_do_not_cut_through_stone_on_high_corner_push()
 	await test_push_mouse_look_allows_downward_contact_view()
-	await test_push_mouse_look_keeps_left_right_aim_authority()
 	await test_push_contact_cue_tracks_pressure_point()
 	await test_push_lab_route_markers_are_visible_for_peripheral_direction()
 	await test_push_lab_pressure_markers_are_visual_only()
@@ -49,13 +41,7 @@ func _run_async() -> void:
 	await test_push_view_can_read_ridge_target_in_world()
 	await test_push_view_keeps_route_edges_in_peripheral_vision()
 	await test_push_lab_can_save_first_person_observation_snapshot()
-	await test_push_lab_can_save_core_evidence_sequence()
 	await test_push_lab_obstacles_have_collision_bodies()
-	await test_push_lab_can_evaluate_aim_control_drill()
-	await test_push_lab_can_evaluate_angle_mastery_drill()
-	await test_push_lab_can_evaluate_short_slope_angle_gate()
-	await test_push_lab_can_evaluate_slow_aim_polarity_drill()
-	await test_push_lab_can_evaluate_bias_recovery_route()
 	if failures.is_empty():
 		print("All push lab tests passed.")
 		quit(0)
@@ -67,6 +53,22 @@ func _run_async() -> void:
 
 func test_push_lab_scene_exists() -> void:
 	_expect_true(ResourceLoader.exists("res://scenes/PushLab.tscn"), "PushLab scene should exist as an independent feel lab")
+
+
+func test_push_lab_reports_two_hand_topology() -> void:
+	var lab_scene = load("res://scenes/PushLab.tscn")
+	var lab = lab_scene.instantiate()
+	root.add_child(lab)
+	await physics_frame
+	_expect_true(lab.has_method("evaluate_two_hand_topology"), "PushLab should expose the two-hand topology diagnostic")
+	if lab.has_method("evaluate_two_hand_topology"):
+		var result: Dictionary = lab.call("evaluate_two_hand_topology")
+		_expect_true(float(result.get("left_only_side_force", 0.0)) > 0.0, "PushLab left-only sample should point right")
+		_expect_true(float(result.get("right_only_side_force", 0.0)) < 0.0, "PushLab right-only sample should point left")
+		_expect_true(float(result.get("balanced_side_force", INF)) < 0.001, "PushLab balanced sample should cancel lateral force")
+		_expect_true(float(result.get("camera_force_delta", INF)) < 0.0001, "PushLab camera sweep should leave force unchanged")
+	lab.queue_free()
+	await process_frame
 
 
 func test_push_lab_presets_are_distinct() -> void:

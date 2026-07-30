@@ -29,6 +29,22 @@ class PushFrame:
 	var burden_recoil: float
 	var force_uphill_component: float
 	var gravity_downhill_component: float
+	var left_contact_point: Vector3 = Vector3.ZERO
+	var right_contact_point: Vector3 = Vector3.ZERO
+	var left_contact_offset: Vector3 = Vector3.ZERO
+	var right_contact_offset: Vector3 = Vector3.ZERO
+	var left_force: Vector3 = Vector3.ZERO
+	var right_force: Vector3 = Vector3.ZERO
+	var left_torque: Vector3 = Vector3.ZERO
+	var right_torque: Vector3 = Vector3.ZERO
+	var left_strength: float = 0.0
+	var right_strength: float = 0.0
+	var left_load: float = 0.0
+	var right_load: float = 0.0
+	var left_scrape_level: float = 0.0
+	var right_scrape_level: float = 0.0
+	var left_haptic_level: float = 0.0
+	var right_haptic_level: float = 0.0
 
 	func _init(
 		next_contact_point: Vector3,
@@ -92,6 +108,41 @@ static func calculate_push_frame(
 	camera_origin: Variant = null,
 	brace_amount: float = 1.0
 ) -> PushFrame:
+	var body_direction: Vector3 = stone_position - player_position
+	body_direction.y = 0.0
+	var uphill: Vector3 = _uphill_at(stone_position.z, tuning, mountain)
+	if body_direction.length_squared() < 0.001:
+		body_direction = uphill
+	else:
+		body_direction = body_direction.normalized()
+		body_direction = (body_direction + Vector3.UP * uphill.y).normalized()
+	var strength: float = 1.0 if is_pushing else 0.0
+	return calculate_two_hand_push_frame(
+		stone_position,
+		player_position,
+		body_direction,
+		camera_direction,
+		strength,
+		strength,
+		tuning,
+		mountain,
+		push_hold_seconds,
+		brace_amount
+	)
+
+
+static func calculate_two_hand_push_frame(
+	stone_position: Vector3,
+	player_position: Vector3,
+	body_direction: Vector3,
+	camera_direction: Vector3,
+	left_strength: float,
+	right_strength: float,
+	tuning,
+	mountain = null,
+	push_hold_seconds: float = 999.0,
+	brace_amount: float = 1.0
+) -> PushFrame:
 	var uphill: Vector3 = _uphill_at(stone_position.z, tuning, mountain)
 	var downhill: Vector3 = -uphill
 	var normal: Vector3 = Vector3.UP
@@ -100,46 +151,50 @@ static func calculate_push_frame(
 	elif mountain != null and mountain.has_method("normal_at"):
 		normal = mountain.normal_at(stone_position.z).normalized()
 	var side: Vector3 = _side_from_uphill(uphill)
+	var resolved_body_direction: Vector3 = body_direction.normalized()
+	if resolved_body_direction.length_squared() < 0.001:
+		resolved_body_direction = uphill
+	if resolved_body_direction.dot(uphill) < 0.35:
+		resolved_body_direction = uphill
+	resolved_body_direction = (resolved_body_direction - normal * resolved_body_direction.dot(normal) + normal * uphill.dot(normal)).normalized()
 	var aim: Vector3 = camera_direction.normalized()
-	var relative_vertical_aim: float = aim.y - uphill.y
-	var contact_height_component: float = (
-		0.24
-		+ clampf((relative_vertical_aim + 0.08) * tuning.aim_contact_strength, -0.36, 0.76) * 0.58
-	)
-	var surface_direction: Vector3 = (
-		downhill * 0.64
-		+ normal * contact_height_component
-		+ side * clampf(aim.dot(side) * tuning.aim_contact_strength + lateral_axis * 0.025, -0.82, 0.82) * 0.58
-	).normalized()
-	surface_direction = _reticle_surface_direction(
-		stone_position,
-		aim,
-		camera_origin,
-		surface_direction,
-		downhill,
-		normal,
-		tuning
-	)
-	var side_bias: float = clampf(
-		surface_direction.dot(side) / 0.58 + lateral_axis * 0.025,
-		-0.82,
-		0.82
-	)
-	var contact_quality: float = _contact_quality(surface_direction, downhill, normal, side, relative_vertical_aim)
-	var camera_contact_point: Vector3 = stone_position + surface_direction * tuning.stone_radius
+	if aim.length_squared() < 0.001:
+		aim = resolved_body_direction
+	var resolved_left_strength: float = clampf(left_strength, 0.0, 1.0)
+	var resolved_right_strength: float = clampf(right_strength, 0.0, 1.0)
+	var combined_strength: float = resolved_left_strength + resolved_right_strength
 
-	var hand_spread: float = tuning.stone_radius * 0.18
-	var palm_outward_offset: Vector3 = surface_direction * tuning.first_person_hand_surface_offset
-	var left_hand_target: Vector3 = camera_contact_point + palm_outward_offset - side * hand_spread
-	var right_hand_target: Vector3 = camera_contact_point + palm_outward_offset + side * hand_spread
-	var active_hand: String = "right" if side_bias >= 0.0 else "left"
-	if active_hand == "right":
-		right_hand_target += (camera_contact_point - stone_position).normalized() * 0.04
-	else:
-		left_hand_target += (camera_contact_point - stone_position).normalized() * 0.04
+	var base_surface_direction: Vector3 = (downhill * 0.72 + normal * 0.24).normalized()
+	var hand_surface_spread: float = 0.34
+	var left_surface_direction: Vector3 = (base_surface_direction - side * hand_surface_spread).normalized()
+	var right_surface_direction: Vector3 = (base_surface_direction + side * hand_surface_spread).normalized()
+	var left_contact_point: Vector3 = stone_position + left_surface_direction * tuning.stone_radius
+	var right_contact_point: Vector3 = stone_position + right_surface_direction * tuning.stone_radius
+	var left_contact_offset: Vector3 = left_contact_point - stone_position
+	var right_contact_offset: Vector3 = right_contact_point - stone_position
+	var palm_outward_offset: float = tuning.first_person_hand_surface_offset
+	var left_hand_target: Vector3 = left_contact_point + left_surface_direction * palm_outward_offset
+	var right_hand_target: Vector3 = right_contact_point + right_surface_direction * palm_outward_offset
+	var camera_contact_point: Vector3 = (left_contact_point + right_contact_point) * 0.5
+	if combined_strength > 0.001:
+		camera_contact_point = (
+			left_contact_point * resolved_left_strength
+			+ right_contact_point * resolved_right_strength
+		) / combined_strength
+	var active_hand: String = "both"
+	if resolved_left_strength > resolved_right_strength + 0.001:
+		active_hand = "left"
+	elif resolved_right_strength > resolved_left_strength + 0.001:
+		active_hand = "right"
+	elif combined_strength <= 0.001:
+		active_hand = "none"
 
-	var force_direction: Vector3 = (uphill + side * side_bias * tuning.aim_force_strength).normalized()
-	var contact_offset: Vector3 = camera_contact_point - stone_position
+	# Each hand pushes uphill and inward from its own side of the spherical contact.
+	# The inward component creates the away-from-hand drift while the tangential
+	# component, applied at the offset below, produces genuine rigid-body torque.
+	var lateral_force_ratio: float = hand_surface_spread / 0.72
+	var left_force_direction: Vector3 = (resolved_body_direction + side * lateral_force_ratio).normalized()
+	var right_force_direction: Vector3 = (resolved_body_direction - side * lateral_force_ratio).normalized()
 	var to_player: Vector3 = player_position - stone_position
 	var player_distance: float = to_player.length()
 	var rear_dot: float = 0.0
@@ -150,14 +205,15 @@ static func calculate_push_frame(
 	var reach_strength: float = clampf(1.0 - reach_error / maxf(0.001, tuning.contact_distance), 0.0, 1.0)
 	reach_strength = smoothstep(0.0, 1.0, reach_strength)
 	var contact_valid: bool = (
-		is_pushing
+		combined_strength > 0.001
 		and player_distance <= tuning.push_disengage_distance
 		and player_distance > tuning.stone_radius * 0.55
 		and rear_dot >= tuning.rear_contact_dot_min
 		and reach_strength > 0.05
-		and contact_quality > 0.08
 	)
-	var contact_force: Vector3 = Vector3.ZERO
+	var contact_quality: float = _contact_quality(base_surface_direction, downhill, normal, side)
+	var left_force: Vector3 = Vector3.ZERO
+	var right_force: Vector3 = Vector3.ZERO
 	if contact_valid:
 		var quality_multiplier: float = _quality_force_multiplier(contact_quality, tuning)
 		var brace_multiplier: float = brace_force_multiplier(brace_amount, tuning)
@@ -166,17 +222,30 @@ static func calculate_push_frame(
 			ramp_alpha = clampf(push_hold_seconds / tuning.push_force_ramp_seconds, 0.0, 1.0)
 			ramp_alpha = smoothstep(0.0, 1.0, ramp_alpha)
 		var ramp_multiplier: float = lerpf(0.65, 1.0, ramp_alpha)
-		var magnitude: float = minf(
+		var total_magnitude: float = minf(
 			minf(tuning.max_contact_push_force, tuning.max_push_force_per_frame),
 			maxf(tuning.push_force, tuning.push_contact_spring) * reach_strength
 		) * ramp_multiplier * quality_multiplier * brace_multiplier
-		contact_force = force_direction * magnitude
+		var hand_scale: float = 1.0 / maxf(1.0, combined_strength)
+		left_force = left_force_direction * total_magnitude * resolved_left_strength * hand_scale
+		right_force = right_force_direction * total_magnitude * resolved_right_strength * hand_scale
+	var contact_force: Vector3 = left_force + right_force
+	var force_direction: Vector3 = contact_force.normalized()
+	if force_direction.length_squared() < 0.001:
+		force_direction = resolved_body_direction
+	var left_torque: Vector3 = left_contact_offset.cross(left_force)
+	var right_torque: Vector3 = right_contact_offset.cross(right_force)
+	var roll_torque: Vector3 = left_torque + right_torque
+	var contact_offset: Vector3 = (left_contact_offset + right_contact_offset) * 0.5
+	if combined_strength > 0.001:
+		contact_offset = (
+			left_contact_offset * resolved_left_strength
+			+ right_contact_offset * resolved_right_strength
+		) / combined_strength
 	var central_force: Vector3 = Vector3.ZERO
-	var roll_torque: Vector3 = Vector3.ZERO
 
 	var player_anchor: Vector3 = stone_position
 	player_anchor += downhill * (tuning.stone_radius * 1.65)
-	player_anchor += side * side_bias * 0.42
 	if mountain != null and mountain.has_method("height_at"):
 		player_anchor.y = mountain.height_at(player_anchor.z) + 0.05
 	else:
@@ -215,6 +284,23 @@ static func calculate_push_frame(
 	frame.brace_amount = clampf(brace_amount, 0.0, 1.0)
 	frame.force_application_offset = contact_offset * clampf(float(tuning.push_effective_lever_arm), 0.05, 1.0)
 	frame.breakaway_ratio = force_uphill_component / maxf(1.0, gravity_downhill_component)
+	frame.left_contact_point = left_contact_point
+	frame.right_contact_point = right_contact_point
+	frame.left_contact_offset = left_contact_offset * clampf(float(tuning.push_effective_lever_arm), 0.05, 1.0)
+	frame.right_contact_offset = right_contact_offset * clampf(float(tuning.push_effective_lever_arm), 0.05, 1.0)
+	frame.left_force = left_force
+	frame.right_force = right_force
+	frame.left_torque = frame.left_contact_offset.cross(left_force)
+	frame.right_torque = frame.right_contact_offset.cross(right_force)
+	frame.left_strength = resolved_left_strength
+	frame.right_strength = resolved_right_strength
+	var per_hand_capacity: float = maxf(1.0, minf(tuning.max_contact_push_force, tuning.max_push_force_per_frame) * 0.5)
+	frame.left_load = clampf(left_force.length() / per_hand_capacity, 0.0, 1.0)
+	frame.right_load = clampf(right_force.length() / per_hand_capacity, 0.0, 1.0)
+	frame.left_scrape_level = frame.left_load
+	frame.right_scrape_level = frame.right_load
+	frame.left_haptic_level = frame.left_load
+	frame.right_haptic_level = frame.right_load
 	return frame
 
 
@@ -230,16 +316,50 @@ static func apply_push(
 	camera_origin: Variant = null,
 	brace_amount: float = 1.0
 ) -> PushFrame:
-	var frame: PushFrame = calculate_push_frame(
-		stone.global_position,
+	var body_direction: Vector3 = stone.global_position - player_position
+	body_direction.y = 0.0
+	var uphill: Vector3 = _uphill_at(stone.global_position.z, tuning, mountain)
+	if body_direction.length_squared() < 0.001:
+		body_direction = uphill
+	else:
+		body_direction = (body_direction.normalized() + Vector3.UP * uphill.y).normalized()
+	var strength: float = 1.0 if is_pushing else 0.0
+	return apply_two_hand_push(
+		stone,
 		player_position,
+		body_direction,
 		camera_direction,
-		is_pushing,
-		lateral_axis,
+		strength,
+		strength,
 		tuning,
 		mountain,
 		push_hold_seconds,
-		camera_origin,
+		brace_amount
+	)
+
+
+static func apply_two_hand_push(
+	stone: RigidBody3D,
+	player_position: Vector3,
+	body_direction: Vector3,
+	camera_direction: Vector3,
+	left_strength: float,
+	right_strength: float,
+	tuning,
+	mountain = null,
+	push_hold_seconds: float = 999.0,
+	brace_amount: float = 1.0
+) -> PushFrame:
+	var frame: PushFrame = calculate_two_hand_push_frame(
+		stone.global_position,
+		player_position,
+		body_direction,
+		camera_direction,
+		left_strength,
+		right_strength,
+		tuning,
+		mountain,
+		push_hold_seconds,
 		brace_amount
 	)
 	if frame.central_force.length_squared() > 0.0:
@@ -259,11 +379,22 @@ static func apply_push(
 		var ramped_minimum_force: float = frame.contact_force.dot(frame.roll_direction) * _burden_minimum_force_scale(tuning)
 		if damped_force.dot(frame.roll_direction) < ramped_minimum_force:
 			damped_force = frame.roll_direction * ramped_minimum_force
+		var original_force_length: float = frame.contact_force.length()
 		frame.contact_force = damped_force.limit_length(minf(tuning.max_contact_push_force, tuning.max_push_force_per_frame))
+		var hand_force_scale: float = frame.contact_force.length() / maxf(0.001, original_force_length)
+		frame.left_force *= hand_force_scale
+		frame.right_force *= hand_force_scale
+		frame.contact_force = frame.left_force + frame.right_force
 		frame.force = frame.contact_force
 		frame.force_uphill_component = frame.contact_force.dot(frame.uphill_direction)
 		frame.breakaway_ratio = frame.force_uphill_component / maxf(1.0, frame.gravity_downhill_component)
-		stone.apply_force(frame.contact_force, frame.force_application_offset)
+		frame.left_torque = frame.left_contact_offset.cross(frame.left_force)
+		frame.right_torque = frame.right_contact_offset.cross(frame.right_force)
+		frame.roll_torque = frame.left_torque + frame.right_torque
+		if frame.left_force.length_squared() > 0.0:
+			stone.apply_force(frame.left_force, frame.left_contact_offset)
+		if frame.right_force.length_squared() > 0.0:
+			stone.apply_force(frame.right_force, frame.right_contact_offset)
 		_damp_non_roll_spin(stone, frame, tuning)
 	else:
 		frame.burden_stride = 1.0
@@ -271,6 +402,16 @@ static func apply_push(
 		_apply_release_rolling_resistance(stone, tuning, frame.uphill_direction)
 	var linear_speed: float = stone.linear_velocity.length()
 	frame.spin_to_translation_ratio = stone.angular_velocity.length() / maxf(linear_speed, 0.05)
+	var rim_speed: float = stone.angular_velocity.length() * tuning.stone_radius
+	var slip_ratio: float = clampf(
+		absf(rim_speed - linear_speed) / maxf(0.2, maxf(rim_speed, linear_speed)),
+		0.0,
+		1.0
+	)
+	frame.left_scrape_level = frame.left_load * lerpf(0.35, 1.0, slip_ratio)
+	frame.right_scrape_level = frame.right_load * lerpf(0.35, 1.0, slip_ratio)
+	frame.left_haptic_level = maxf(frame.left_load * 0.55, frame.left_scrape_level)
+	frame.right_haptic_level = maxf(frame.right_load * 0.55, frame.right_scrape_level)
 	return frame
 
 

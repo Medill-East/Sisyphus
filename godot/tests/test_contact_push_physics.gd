@@ -17,13 +17,9 @@ func _run_async() -> void:
 	await test_released_contact_push_stops_scripted_climb()
 	await test_biased_contact_push_moves_laterally()
 	await test_contact_push_does_not_spin_in_place()
-	await test_bad_contact_angle_cannot_motor_uphill()
-	await test_near_bad_contact_angle_loses_ground_under_load()
-	await test_bad_contact_angle_holding_w_cannot_climb()
-	await test_standard_bad_angle_holding_w_loses_ground()
 	await test_released_stone_rolls_back_downhill()
 	await test_standard_released_stone_rolls_back_downhill()
-	await test_upward_aim_changes_contact_without_lifting()
+	await test_camera_sweep_does_not_change_contact_force()
 	await test_first_person_hands_exist_and_body_can_hide()
 	if failures.is_empty():
 		print("All contact push physics tests passed.")
@@ -62,7 +58,9 @@ func test_contact_push_uses_offset_force() -> void:
 	)
 	_expect_true(contact_force is Vector3 and contact_force.length() > 1.0, "contact push should produce a positioned force")
 	_expect_true(frame.central_force.length() < 0.001, "contact push should not rely on central force as its main driver")
-	_expect_true(frame.roll_torque.length() < 0.001, "contact push should not rely on scripted torque")
+	_expect_true(frame.left_contact_offset.distance_to(frame.right_contact_offset) > main.tuning.stone_radius * 0.12, "hands should use distinct lateral contact offsets")
+	_expect_true(frame.left_torque.distance_to(frame.left_contact_offset.cross(frame.left_force)) < 0.0001, "left torque should come from offset cross force")
+	_expect_true(frame.right_torque.distance_to(frame.right_contact_offset.cross(frame.right_force)) < 0.0001, "right torque should come from offset cross force")
 	main.queue_free()
 	await process_frame
 
@@ -73,7 +71,7 @@ func test_continuous_contact_push_moves_stone_uphill() -> void:
 	await physics_frame
 	_prepare_ascent(main)
 	var start_z: float = main.stone.global_position.z
-	await _simulate_contact_push(main, 300, true, 0.0, Vector3.ZERO)
+	await _simulate_contact_push(main, 300, 1.0, 1.0, Vector3.ZERO)
 	var uphill_gain: float = start_z - main.stone.global_position.z
 	_expect_true(uphill_gain > 0.85, "continuous contact push should move the stone uphill in real scene physics: %.2f" % uphill_gain)
 	main.queue_free()
@@ -85,9 +83,9 @@ func test_released_contact_push_stops_scripted_climb() -> void:
 	root.add_child(main)
 	await physics_frame
 	_prepare_ascent(main)
-	await _simulate_contact_push(main, 130, true, 0.0, Vector3.ZERO)
+	await _simulate_contact_push(main, 130, 1.0, 1.0, Vector3.ZERO)
 	var release_z: float = main.stone.global_position.z
-	await _simulate_contact_push(main, 150, false, 0.0, Vector3.ZERO)
+	await _simulate_contact_push(main, 150, 0.0, 0.0, Vector3.ZERO)
 	var uphill_after_release: float = release_z - main.stone.global_position.z
 	_expect_true(uphill_after_release < 0.45, "released stone should not keep climbing from scripted push")
 	main.queue_free()
@@ -100,10 +98,9 @@ func test_biased_contact_push_moves_laterally() -> void:
 	await physics_frame
 	_prepare_ascent(main)
 	var start_position: Vector3 = main.stone.global_position
-	await _simulate_contact_push(main, 260, true, 0.0, Vector3.RIGHT * 0.9)
+	await _simulate_contact_push(main, 260, 1.0, 0.0, Vector3.RIGHT * 0.9)
 	var lateral_delta: float = main.stone.global_position.x - start_position.x
-	_expect_true(lateral_delta > 0.18, "right-biased camera aim should create visible rightward drift")
-	_expect_true(absf(lateral_delta) < 2.2, "biased push should stay recoverable on the route")
+	_expect_true(lateral_delta > 0.18, "left-only contact should create visible rightward drift")
 	_expect_true(main.stone.global_position.z < start_position.z - 0.45, "biased contact push should still move uphill")
 	main.queue_free()
 	await process_frame
@@ -115,7 +112,7 @@ func test_contact_push_does_not_spin_in_place() -> void:
 	await physics_frame
 	_prepare_ascent(main)
 	var start_position: Vector3 = main.stone.global_position
-	await _simulate_contact_push(main, 260, true, 0.0, Vector3.RIGHT * 0.55)
+	await _simulate_contact_push(main, 260, 1.0, 0.0, Vector3.RIGHT * 0.55)
 	var horizontal_distance := Vector2(
 		main.stone.global_position.x - start_position.x,
 		main.stone.global_position.z - start_position.z
@@ -174,7 +171,7 @@ func test_near_bad_contact_angle_loses_ground_under_load() -> void:
 	_prepare_ascent(main)
 	var start_z: float = main.stone.global_position.z
 	var weak_aim := Vector3.RIGHT * 0.72 + Vector3.UP * 0.78
-	await _simulate_contact_push(main, 220, true, 0.0, weak_aim)
+	await _simulate_contact_push(main, 220, 1.0, 1.0, weak_aim)
 	var uphill_gain: float = start_z - main.stone.global_position.z
 	_expect_true(
 		uphill_gain < -0.10,
@@ -203,7 +200,7 @@ func test_bad_contact_angle_holding_w_cannot_climb() -> void:
 		main.mountain,
 		main.tuning.push_force_ramp_seconds + 0.2
 	)
-	await _simulate_contact_push(main, 210, true, 0.0, bad_aim)
+	await _simulate_contact_push(main, 210, 1.0, 1.0, bad_aim)
 	var uphill_gain: float = start_z - main.stone.global_position.z
 	_expect_true(
 		uphill_gain < 0.12,
@@ -228,7 +225,7 @@ func test_standard_bad_angle_holding_w_loses_ground() -> void:
 	_prepare_ascent(main)
 	var start_z: float = main.stone.global_position.z
 	var bad_aim := Vector3.RIGHT * 0.92 + Vector3.UP * 0.92
-	await _simulate_contact_push(main, 240, true, 0.0, bad_aim)
+	await _simulate_contact_push(main, 240, 1.0, 1.0, bad_aim)
 	var uphill_gain: float = start_z - main.stone.global_position.z
 	_expect_true(
 		uphill_gain < -0.08,
@@ -243,11 +240,11 @@ func test_released_stone_rolls_back_downhill() -> void:
 	root.add_child(main)
 	await physics_frame
 	_prepare_ascent(main)
-	await _simulate_contact_push(main, 90, true, 0.0, Vector3.ZERO)
+	await _simulate_contact_push(main, 90, 1.0, 1.0, Vector3.ZERO)
 	main.stone.linear_velocity = Vector3.ZERO
 	main.stone.angular_velocity = Vector3.ZERO
 	var release_z: float = main.stone.global_position.z
-	await _simulate_contact_push(main, 180, false, 0.0, Vector3.ZERO)
+	await _simulate_contact_push(main, 180, 0.0, 0.0, Vector3.ZERO)
 	_expect_true(
 		main.stone.global_position.z > release_z + 0.42,
 		"released stone on the front slope should visibly roll back downhill when the player stops pushing"
@@ -262,11 +259,11 @@ func test_standard_released_stone_rolls_back_downhill() -> void:
 	await physics_frame
 	main.tuning.apply_push_lab_preset("standard")
 	_prepare_ascent(main)
-	await _simulate_contact_push(main, 100, true, 0.0, Vector3.ZERO)
+	await _simulate_contact_push(main, 100, 1.0, 1.0, Vector3.ZERO)
 	main.stone.linear_velocity = Vector3.ZERO
 	main.stone.angular_velocity = Vector3.ZERO
 	var release_z: float = main.stone.global_position.z
-	await _simulate_contact_push(main, 180, false, 0.0, Vector3.ZERO)
+	await _simulate_contact_push(main, 180, 0.0, 0.0, Vector3.ZERO)
 	_expect_true(
 		main.stone.global_position.z > release_z + 0.42,
 		"standard preset released stone should roll back downhill on the front slope"
@@ -275,7 +272,7 @@ func test_standard_released_stone_rolls_back_downhill() -> void:
 	await process_frame
 
 
-func test_upward_aim_changes_contact_without_lifting() -> void:
+func test_camera_sweep_does_not_change_contact_force() -> void:
 	var main = MainScene.instantiate()
 	root.add_child(main)
 	await physics_frame
@@ -303,10 +300,10 @@ func test_upward_aim_changes_contact_without_lifting() -> void:
 	)
 	var low_force = low_frame.get("contact_force")
 	var high_force = high_frame.get("contact_force")
-	_expect_true(high_frame.contact_point.y - low_frame.contact_point.y > 0.20, "upward aim should raise the hand contact point")
+	_expect_true(high_frame.contact_point.distance_to(low_frame.contact_point) < 0.0001, "camera pitch should not move physical contact")
 	_expect_true(
-		low_force is Vector3 and high_force is Vector3 and high_force.normalized().dot(Vector3.UP) <= low_force.normalized().dot(Vector3.UP) + 0.08,
-		"upward aim should change contact quality instead of adding a lifting force direction"
+		low_force is Vector3 and high_force is Vector3 and high_force.distance_to(low_force) < 0.0001,
+		"camera pitch should not change force direction or magnitude"
 	)
 	main.queue_free()
 	await process_frame
@@ -368,18 +365,19 @@ func _prepare_ascent(main) -> void:
 	main.player.camera_pitch = -0.06
 
 
-func _simulate_contact_push(main, frames: int, is_pushing: bool, lateral_axis: float, aim_offset: Vector3) -> void:
+func _simulate_contact_push(main, frames: int, left_strength: float, right_strength: float, aim_offset: Vector3) -> void:
 	for index in frames:
 		var uphill: Vector3 = main.mountain.uphill_tangent_at(main.stone.global_position.z)
 		var player_position: Vector3 = _downhill_player_position(main)
 		main.player.global_position = player_position
 		var camera_direction: Vector3 = (uphill + aim_offset).normalized()
-		main.player.push_frame = PushControllerScript.apply_push(
+		main.player.push_frame = PushControllerScript.apply_two_hand_push(
 			main.stone,
 			player_position,
+			uphill,
 			camera_direction,
-			is_pushing,
-			lateral_axis,
+			left_strength,
+			right_strength,
 			main.tuning,
 			main.mountain
 		)

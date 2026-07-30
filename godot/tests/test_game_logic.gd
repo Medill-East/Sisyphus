@@ -29,12 +29,12 @@ func _run() -> void:
 	test_route_pressure_markers_show_low_side_without_blocking()
 	test_push_requires_continuous_input()
 	test_push_force_ramps_with_sustained_contact()
-	test_push_brace_requires_quality_and_steady_aim()
+	test_push_brace_requires_contact_quality()
 	test_push_brace_builds_and_collapses()
 	test_burden_force_shaping_slows_machine_like_push()
 	test_burden_stride_exposes_step_effort_cycle()
-	test_push_direction_tracks_camera_aim()
-	test_push_engagement_requires_w_and_releases_cleanly()
+	test_push_direction_is_independent_of_camera()
+	test_push_engagement_requires_hand_input_and_releases_cleanly()
 	test_camera_push_blend_enters_and_exits_smoothly()
 	test_camera_aim_has_visible_contact_and_force_authority()
 	test_camera_ray_targets_the_reticle_surface()
@@ -63,13 +63,11 @@ func test_mountain_height_is_double_sided() -> void:
 	mountain.free()
 
 
-func test_push_brace_requires_quality_and_steady_aim() -> void:
+func test_push_brace_requires_contact_quality() -> void:
 	var tuning = TuningScript.new()
 	var stable_good: float = PushControllerScript.brace_target(0.84, 0.08, tuning)
-	var unstable_good: float = PushControllerScript.brace_target(0.84, 3.6, tuning)
 	var stable_bad: float = PushControllerScript.brace_target(0.44, 0.08, tuning)
-	_expect_true(stable_good > 0.82, "steady sweet-spot contact should permit a strong body brace")
-	_expect_true(unstable_good < 0.22, "rapid camera motion should break leverage even on a good contact point")
+	_expect_true(stable_good > 0.82, "usable hand contact should permit a strong body brace")
 	_expect_true(stable_bad < 0.22, "a poor pressure angle should not build enough brace to motor uphill")
 
 
@@ -343,7 +341,7 @@ func test_burden_stride_exposes_step_effort_cycle() -> void:
 	push_controller.free()
 
 
-func test_push_direction_tracks_camera_aim() -> void:
+func test_push_direction_is_independent_of_camera() -> void:
 	var tuning = TuningScript.new()
 	var mountain = MountainBuilderScript.new()
 	mountain.tuning = tuning
@@ -365,12 +363,12 @@ func test_push_direction_tracks_camera_aim() -> void:
 		tuning,
 		mountain
 	)
-	_expect_true(left_frame.contact_point.x < right_frame.contact_point.x, "hand contact should follow camera aim")
-	_expect_true(left_frame.force.x < 0.0 and right_frame.force.x > 0.0, "lateral force should follow camera aim")
+	_expect_true(left_frame.contact_point.distance_to(right_frame.contact_point) < 0.0001, "camera sweep should not move physical hand contacts")
+	_expect_true(left_frame.force.distance_to(right_frame.force) < 0.0001, "camera sweep should not change force direction or magnitude")
 	mountain.free()
 
 
-func test_push_engagement_requires_w_and_releases_cleanly() -> void:
+func test_push_engagement_requires_hand_input_and_releases_cleanly() -> void:
 	var tuning = TuningScript.new()
 	var mountain = MountainBuilderScript.new()
 	mountain.tuning = tuning
@@ -380,11 +378,11 @@ func test_push_engagement_requires_w_and_releases_cleanly() -> void:
 	player_position.y = mountain.height_at(player_position.z) + 0.05
 	_expect_true(
 		PlayerControllerScript.should_engage_push(false, true, false, player_position, stone_position, uphill, tuning),
-		"holding W near the downhill face should engage pushing"
+		"holding either hand input near the downhill face should engage pushing"
 	)
 	_expect_true(
 		not PlayerControllerScript.should_engage_push(false, false, false, player_position, stone_position, uphill, tuning),
-		"near stone without W should not engage pushing"
+		"near stone without hand input should not engage pushing"
 	)
 	_expect_true(
 		not PlayerControllerScript.should_engage_push(true, true, true, player_position, stone_position, uphill, tuning),
@@ -452,13 +450,13 @@ func test_camera_aim_has_visible_contact_and_force_authority() -> void:
 		tuning,
 		mountain
 	)
-	_expect_true(right_frame.camera_contact_point.x - left_frame.camera_contact_point.x > 0.75, "camera aim should visibly move the hand contact across the stone")
-	_expect_true(right_frame.roll_direction.x - left_frame.roll_direction.x > 0.35, "camera aim should create a playable lateral roll direction")
-	_expect_true(right_frame.contact_force.x - left_frame.contact_force.x > 25.0, "camera aim should create a playable lateral push difference")
+	_expect_true(right_frame.camera_contact_point.distance_to(left_frame.camera_contact_point) < 0.0001, "camera aim must not move the physical hand contact")
+	_expect_true(right_frame.roll_direction.distance_to(left_frame.roll_direction) < 0.0001, "camera aim must not change the roll direction")
+	_expect_true(right_frame.contact_force.distance_to(left_frame.contact_force) < 0.0001, "camera aim must not change the contact force")
 	_expect_true(left_frame.contact_force.dot(uphill) > left_frame.contact_force.length() * 0.74, "left-biased push should still keep enough uphill force")
 	_expect_true(right_frame.contact_force.dot(uphill) > right_frame.contact_force.length() * 0.74, "right-biased push should still keep enough uphill force")
 	_expect_true(centered_frame.contact_quality > 0.45, "centered downhill-side contact should read as a usable angle")
-	_expect_true(weak_corner_frame.contact_quality < centered_frame.contact_quality * 0.75, "high corner contact should visibly read as a weaker angle")
+	_expect_near(weak_corner_frame.contact_quality, centered_frame.contact_quality, 0.0001, "camera corner look should not weaken body-driven contact")
 	mountain.free()
 
 
@@ -499,10 +497,10 @@ func test_camera_ray_targets_the_reticle_surface() -> void:
 		999.0,
 		camera_origin
 	)
-	_expect_true(left_frame.camera_contact_point.distance_to(left_target) < 0.16, "camera ray should place the hand at the reticle-selected left working surface")
-	_expect_true(right_frame.camera_contact_point.distance_to(right_target) < 0.16, "camera ray should place the hand at the reticle-selected right working surface")
-	_expect_true((right_frame.camera_contact_point - left_frame.camera_contact_point).dot(side) > 0.70, "reticle surface targeting should move contact clearly left/right")
-	_expect_true(right_frame.contact_force.dot(side) - left_frame.contact_force.dot(side) > 64.0, "reticle surface targeting should produce a strong enough side-force gap to steer deliberately")
+	_expect_true(left_frame.camera_contact_point.distance_to(right_frame.camera_contact_point) < 0.0001, "reticle sweep should leave physical contact geometry unchanged")
+	_expect_true(left_frame.contact_force.distance_to(right_frame.contact_force) < 0.0001, "reticle sweep should leave aggregate force unchanged")
+	_expect_true(left_frame.left_contact_point.dot(side) < right_frame.right_contact_point.dot(side), "left and right hands should retain separate off-center contacts")
+	_expect_true(left_frame.left_torque.length() > 0.1 and right_frame.right_torque.length() > 0.1, "each off-center contact should expose real torque")
 	mountain.free()
 
 
@@ -532,10 +530,10 @@ func test_camera_aim_lift_moves_contact_upward() -> void:
 		tuning,
 		mountain
 	)
-	_expect_true(high_frame.camera_contact_point.y - low_frame.camera_contact_point.y > 0.22, "looking upward should move the hand contact upward")
+	_expect_true(high_frame.camera_contact_point.distance_to(low_frame.camera_contact_point) < 0.0001, "looking upward must not move physical contact")
 	_expect_true(
-		high_frame.contact_force.normalized().dot(Vector3.UP) <= low_frame.contact_force.normalized().dot(Vector3.UP) + 0.08,
-		"looking upward should change contact quality instead of adding a lifting force direction"
+		high_frame.contact_force.distance_to(low_frame.contact_force) < 0.0001,
+		"looking upward must not add a lifting force direction"
 	)
 	mountain.free()
 
@@ -567,9 +565,9 @@ func test_camera_aim_down_moves_contact_down_without_lifting_force() -> void:
 		mountain
 	)
 	_expect_true(center_frame.contact_valid and low_frame.contact_valid, "center and low aim should both remain valid push contacts")
-	_expect_true(center_frame.camera_contact_point.y - low_frame.camera_contact_point.y > 0.24, "looking down should visibly move the hand contact lower on the stone")
+	_expect_true(center_frame.camera_contact_point.distance_to(low_frame.camera_contact_point) < 0.0001, "looking down must not move physical contact")
 	_expect_true(
-		low_frame.contact_force.normalized().dot(Vector3.UP) <= center_frame.contact_force.normalized().dot(Vector3.UP) + 0.08,
+		low_frame.contact_force.distance_to(center_frame.contact_force) < 0.0001,
 		"looking down should not add a new vertical lifting direction"
 	)
 	mountain.free()
