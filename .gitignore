@@ -73,3 +73,9 @@ Plugins/**/Intermediate/*
 
 # Cache files for the editor to use
 DerivedDataCache/*
+
+# Godot 导入缓存（可重建）
+godot/.godot/
+.godot/
+.DS_Store
+.tmp/

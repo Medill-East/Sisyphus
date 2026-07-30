@@ -1,0 +1,66 @@
+[gd_scene load_steps=8 format=3]
+
+[ext_resource type="Script" path="res://scripts/FirstPersonHandsController.gd" id="1_hands_controller"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_arm"]
+albedo_color = Color(0.42, 0.37, 0.27, 1)
+roughness = 0.9
+no_depth_test = true
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_hand"]
+albedo_color = Color(0.52, 0.45, 0.32, 1)
+roughness = 0.88
+no_depth_test = true
+
+[sub_resource type="CapsuleMesh" id="CapsuleMesh_forearm"]
+radius = 0.115
+height = 0.34
+radial_segments = 7
+rings = 3
+
+[sub_resource type="CapsuleMesh" id="CapsuleMesh_upper_arm"]
+radius = 0.125
+height = 0.34
+radial_segments = 7
+rings = 3
+
+[sub_resource type="SphereMesh" id="SphereMesh_hand"]
+radius = 0.17
+height = 0.25
+radial_segments = 8
+rings = 4
+
+[sub_resource type="BoxMesh" id="BoxMesh_chest"]
+size = Vector3(0.88, 0.26, 0.18)
+
+[node name="FirstPersonHands" type="Node3D"]
+visible = false
+script = ExtResource("1_hands_controller")
+
+[node name="Chest" type="MeshInstance3D" parent="."]
+mesh = SubResource("BoxMesh_chest")
+surface_material_override/0 = SubResource("StandardMaterial3D_arm")
+
+[node name="LeftUpperArm" type="MeshInstance3D" parent="."]
+mesh = SubResource("CapsuleMesh_upper_arm")
+surface_material_override/0 = SubResource("StandardMaterial3D_arm")
+
+[node name="RightUpperArm" type="MeshInstance3D" parent="."]
+mesh = SubResource("CapsuleMesh_upper_arm")
+surface_material_override/0 = SubResource("StandardMaterial3D_arm")
+
+[node name="LeftForearm" type="MeshInstance3D" parent="."]
+mesh = SubResource("CapsuleMesh_forearm")
+surface_material_override/0 = SubResource("StandardMaterial3D_arm")
+
+[node name="RightForearm" type="MeshInstance3D" parent="."]
+mesh = SubResource("CapsuleMesh_forearm")
+surface_material_override/0 = SubResource("StandardMaterial3D_arm")
+
+[node name="LeftHand" type="MeshInstance3D" parent="."]
+mesh = SubResource("SphereMesh_hand")
+surface_material_override/0 = SubResource("StandardMaterial3D_hand")
+
+[node name="RightHand" type="MeshInstance3D" parent="."]
+mesh = SubResource("SphereMesh_hand")
+surface_material_override/0 = SubResource("StandardMaterial3D_hand")

@@ -1,0 +1,119 @@
+[gd_scene load_steps=14 format=3]
+
+[ext_resource type="Script" path="res://scripts/PlayerController.gd" id="1_player"]
+[ext_resource type="PackedScene" path="res://scenes/FirstPersonHands.tscn" id="2_hands"]
+[ext_resource type="Script" path="res://scripts/ContactCue.gd" id="3_contact_cue"]
+
+[sub_resource type="CapsuleShape3D" id="CapsuleShape3D_player"]
+radius = 0.24
+height = 1.45
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_body"]
+albedo_color = Color(0.18, 0.21, 0.19, 1)
+roughness = 0.88
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_head"]
+albedo_color = Color(0.27, 0.30, 0.27, 1)
+roughness = 0.88
+
+[sub_resource type="CapsuleMesh" id="CapsuleMesh_torso"]
+radius = 0.2
+height = 0.92
+radial_segments = 8
+rings = 4
+
+[sub_resource type="SphereMesh" id="SphereMesh_head"]
+radius = 0.18
+height = 0.36
+radial_segments = 8
+rings = 4
+
+[sub_resource type="CapsuleMesh" id="CapsuleMesh_arm"]
+radius = 0.06
+height = 0.36
+radial_segments = 6
+rings = 3
+
+[sub_resource type="SphereMesh" id="SphereMesh_hand"]
+radius = 0.14
+height = 0.28
+radial_segments = 7
+rings = 4
+
+[sub_resource type="CapsuleMesh" id="CapsuleMesh_leg"]
+radius = 0.06
+height = 0.72
+radial_segments = 6
+rings = 3
+
+[node name="Player" type="CharacterBody3D"]
+script = ExtResource("1_player")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+position = Vector3(0, 0.78, 0)
+shape = SubResource("CapsuleShape3D_player")
+
+[node name="Body" type="Node3D" parent="."]
+
+[node name="Torso" type="MeshInstance3D" parent="Body"]
+position = Vector3(0, 0.82, 0)
+mesh = SubResource("CapsuleMesh_torso")
+surface_material_override/0 = SubResource("StandardMaterial3D_body")
+
+[node name="Head" type="MeshInstance3D" parent="Body"]
+position = Vector3(0, 1.42, 0)
+mesh = SubResource("SphereMesh_head")
+surface_material_override/0 = SubResource("StandardMaterial3D_head")
+
+[node name="LeftArm" type="Node3D" parent="Body"]
+position = Vector3(-0.28, 0.95, 0)
+rotation = Vector3(0, 0, -0.14)
+
+[node name="UpperArm" type="MeshInstance3D" parent="Body/LeftArm"]
+position = Vector3(0, -0.12, 0)
+mesh = SubResource("CapsuleMesh_arm")
+surface_material_override/0 = SubResource("StandardMaterial3D_body")
+
+[node name="Forearm" type="MeshInstance3D" parent="Body/LeftArm"]
+position = Vector3(0, -0.39, -0.02)
+mesh = SubResource("CapsuleMesh_arm")
+surface_material_override/0 = SubResource("StandardMaterial3D_body")
+
+[node name="Hand" type="MeshInstance3D" parent="Body/LeftArm"]
+position = Vector3(-0.08, -0.62, 0)
+mesh = SubResource("SphereMesh_hand")
+surface_material_override/0 = SubResource("StandardMaterial3D_head")
+
+[node name="RightArm" type="Node3D" parent="Body"]
+position = Vector3(0.28, 0.95, 0)
+rotation = Vector3(0, 0, 0.14)
+
+[node name="UpperArm" type="MeshInstance3D" parent="Body/RightArm"]
+position = Vector3(0, -0.12, 0)
+mesh = SubResource("CapsuleMesh_arm")
+surface_material_override/0 = SubResource("StandardMaterial3D_body")
+
+[node name="Forearm" type="MeshInstance3D" parent="Body/RightArm"]
+position = Vector3(0, -0.39, -0.02)
+mesh = SubResource("CapsuleMesh_arm")
+surface_material_override/0 = SubResource("StandardMaterial3D_body")
+
+[node name="Hand" type="MeshInstance3D" parent="Body/RightArm"]
+position = Vector3(0.08, -0.62, 0)
+mesh = SubResource("SphereMesh_hand")
+surface_material_override/0 = SubResource("StandardMaterial3D_head")
+
+[node name="LeftLeg" type="MeshInstance3D" parent="Body"]
+position = Vector3(-0.09, 0.28, 0.02)
+mesh = SubResource("CapsuleMesh_leg")
+surface_material_override/0 = SubResource("StandardMaterial3D_body")
+
+[node name="RightLeg" type="MeshInstance3D" parent="Body"]
+position = Vector3(0.09, 0.28, 0.02)
+mesh = SubResource("CapsuleMesh_leg")
+surface_material_override/0 = SubResource("StandardMaterial3D_body")
+
+[node name="FirstPersonHands" parent="." instance=ExtResource("2_hands")]
+
+[node name="ContactCue" type="Node3D" parent="."]
+script = ExtResource("3_contact_cue")

@@ -1,0 +1,268 @@
+[gd_scene load_steps=18 format=3]
+
+[ext_resource type="Script" path="res://scripts/VerticalSlice.gd" id="1_vertical_slice"]
+[ext_resource type="PackedScene" path="res://scenes/Player.tscn" id="2_player"]
+[ext_resource type="PackedScene" path="res://scenes/Stone.tscn" id="3_stone"]
+[ext_resource type="PackedScene" path="res://scenes/Mountain.tscn" id="4_mountain"]
+[ext_resource type="Script" path="res://scripts/LevelManager.gd" id="5_level_manager"]
+[ext_resource type="Script" path="res://scripts/TrailRecorder.gd" id="6_trail_recorder"]
+[ext_resource type="Script" path="res://scripts/EnvironmentResponse.gd" id="7_environment_response"]
+[ext_resource type="Script" path="res://scripts/WeatherController.gd" id="8_weather_controller"]
+[ext_resource type="Script" path="res://scripts/HummingController.gd" id="9_humming_controller"]
+
+[sub_resource type="Environment" id="Environment_vertical_slice"]
+background_mode = 1
+background_color = Color(0.20, 0.24, 0.28, 1)
+ambient_light_source = 2
+ambient_light_color = Color(0.45, 0.49, 0.53, 1)
+ambient_light_energy = 0.62
+fog_enabled = true
+fog_light_color = Color(0.42, 0.46, 0.50, 1)
+fog_density = 0.035
+
+[sub_resource type="LabelSettings" id="LabelSettings_vertical_slice"]
+font_size = 18
+font_color = Color(0.90, 0.92, 0.88, 1)
+outline_size = 3
+outline_color = Color(0.04, 0.05, 0.06, 1)
+
+[sub_resource type="BoxMesh" id="RainMarkerMesh"]
+size = Vector3(0.06, 1.2, 0.06)
+
+[sub_resource type="StandardMaterial3D" id="RainMarkerMaterial"]
+albedo_color = Color(0.45, 0.56, 0.68, 0.42)
+roughness = 0.85
+
+[sub_resource type="BoxMesh" id="StormShardMesh"]
+size = Vector3(1.15, 3.2, 0.08)
+
+[sub_resource type="StandardMaterial3D" id="StormVeilMaterial"]
+albedo_color = Color(0.08, 0.10, 0.16, 0.64)
+roughness = 0.9
+
+[sub_resource type="BoxMesh" id="LightCrackMesh"]
+size = Vector3(1.8, 0.12, 0.08)
+
+[sub_resource type="StandardMaterial3D" id="LightCrackMaterial"]
+albedo_color = Color(1, 0.78, 0.34, 0.92)
+emission_enabled = true
+emission = Color(1, 0.58, 0.18, 1)
+emission_energy_multiplier = 1.5
+roughness = 0.42
+
+[node name="VerticalSlice" type="Node3D"]
+script = ExtResource("1_vertical_slice")
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("Environment_vertical_slice")
+
+[node name="Sun" type="DirectionalLight3D" parent="."]
+transform = Transform3D(0.62932, -0.573576, 0.523735, 0, 0.674508, 0.738267, -0.777146, -0.464356, 0.424172, 0, 12, 0)
+light_color = Color(0.72, 0.78, 0.88, 1)
+light_energy = 1.45
+shadow_enabled = true
+
+[node name="Mountain" parent="." instance=ExtResource("4_mountain")]
+
+[node name="Stone" parent="." instance=ExtResource("3_stone")]
+
+[node name="Player" parent="." instance=ExtResource("2_player")]
+
+[node name="Camera3D" type="Camera3D" parent="."]
+current = true
+fov = 58.0
+
+[node name="LevelManager" type="Node" parent="."]
+script = ExtResource("5_level_manager")
+
+[node name="TrailRecorder" type="Node" parent="."]
+script = ExtResource("6_trail_recorder")
+
+[node name="EnvironmentResponse" type="Node3D" parent="."]
+script = ExtResource("7_environment_response")
+
+[node name="WeatherController" type="Node3D" parent="."]
+script = ExtResource("8_weather_controller")
+
+[node name="HummingController" type="Node" parent="."]
+script = ExtResource("9_humming_controller")
+
+[node name="HumPlayer" type="AudioStreamPlayer" parent="."]
+volume_db = -8.0
+
+[node name="RainMarkers" type="Node3D" parent="."]
+visible = false
+
+[node name="RainMarkerA" type="MeshInstance3D" parent="RainMarkers"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.5, 4.5, 2)
+mesh = SubResource("RainMarkerMesh")
+material_override = SubResource("RainMarkerMaterial")
+
+[node name="RainMarkerB" type="MeshInstance3D" parent="RainMarkers"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.2, 5.1, -3)
+mesh = SubResource("RainMarkerMesh")
+material_override = SubResource("RainMarkerMaterial")
+
+[node name="RainMarkerC" type="MeshInstance3D" parent="RainMarkers"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.8, 3.8, -8)
+mesh = SubResource("RainMarkerMesh")
+material_override = SubResource("RainMarkerMaterial")
+
+[node name="ChapterEndMarkers" type="Node3D" parent="."]
+
+[node name="StormShards" type="Node3D" parent="ChapterEndMarkers"]
+visible = false
+
+[node name="StormShardA" type="MeshInstance3D" parent="ChapterEndMarkers/StormShards"]
+transform = Transform3D(0.866025, -0.0818996, -0.493224, 0, 0.986522, -0.163325, 0.5, 0.14145, 0.85435, -2.05, 3.12, -43.4)
+mesh = SubResource("StormShardMesh")
+material_override = SubResource("StormVeilMaterial")
+
+[node name="StormShardB" type="MeshInstance3D" parent="ChapterEndMarkers/StormShards"]
+transform = Transform3D(0.965926, 0.0449435, -0.254887, 0, 0.984808, 0.173648, 0.258819, -0.167731, 0.951251, -0.55, 3.35, -45.2)
+mesh = SubResource("StormShardMesh")
+material_override = SubResource("StormVeilMaterial")
+
+[node name="StormShardC" type="MeshInstance3D" parent="ChapterEndMarkers/StormShards"]
+transform = Transform3D(0.906308, -0.109382, 0.408218, 0, 0.965926, 0.258819, -0.422618, -0.23457, 0.875426, 1.05, 3.05, -44.0)
+mesh = SubResource("StormShardMesh")
+material_override = SubResource("StormVeilMaterial")
+
+[node name="StormShardD" type="MeshInstance3D" parent="ChapterEndMarkers/StormShards"]
+transform = Transform3D(0.819152, 0.0996005, 0.564863, 0, 0.984808, -0.173648, -0.573576, 0.142244, 0.806708, 2.35, 3.28, -46.1)
+mesh = SubResource("StormShardMesh")
+material_override = SubResource("StormVeilMaterial")
+
+[node name="LightCrack" type="MeshInstance3D" parent="ChapterEndMarkers"]
+visible = false
+transform = Transform3D(0.906308, 0.0616284, -0.418044, 0, 0.989326, 0.14572, 0.422553, -0.132065, 0.896635, 1.25, 4.82, -51.5)
+mesh = SubResource("LightCrackMesh")
+material_override = SubResource("LightCrackMaterial")
+
+[node name="HUD" type="CanvasLayer" parent="."]
+
+[node name="Status" type="Label" parent="HUD"]
+offset_left = 18.0
+offset_top = 14.0
+offset_right = 1240.0
+offset_bottom = 46.0
+label_settings = SubResource("LabelSettings_vertical_slice")
+text = "Level 4: anger"
+
+[node name="Prompt" type="Label" parent="HUD"]
+offset_left = 18.0
+offset_top = 44.0
+offset_right = 1240.0
+offset_bottom = 74.0
+label_settings = SubResource("LabelSettings_vertical_slice")
+text = "Vertical slice storm loop."
+
+[node name="Telemetry" type="Label" parent="HUD"]
+offset_left = 18.0
+offset_top = 74.0
+offset_right = 1240.0
+offset_bottom = 112.0
+label_settings = SubResource("LabelSettings_vertical_slice")
+text = "Telemetry"
+
+[node name="CenterReticle" type="Control" parent="HUD"]
+layout_mode = 3
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -10.0
+offset_top = -10.0
+offset_right = 10.0
+offset_bottom = 10.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="Horizontal" type="ColorRect" parent="HUD/CenterReticle"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -9.0
+offset_top = -1.0
+offset_right = 9.0
+offset_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.72, 0.74, 0.68, 0.26)
+
+[node name="Vertical" type="ColorRect" parent="HUD/CenterReticle"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -1.0
+offset_top = -9.0
+offset_right = 1.0
+offset_bottom = 9.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.72, 0.74, 0.68, 0.26)
+
+[node name="PauseMenu" type="Control" parent="HUD"]
+visible = false
+process_mode = 3
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Dim" type="ColorRect" parent="HUD/PauseMenu"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.02, 0.03, 0.03, 0.65)
+
+[node name="Panel" type="PanelContainer" parent="HUD/PauseMenu"]
+layout_mode = 1
+anchors_preset = -1
+anchor_left = 0.36
+anchor_top = 0.25
+anchor_right = 0.64
+anchor_bottom = 0.72
+
+[node name="Content" type="VBoxContainer" parent="HUD/PauseMenu/Panel"]
+layout_mode = 2
+theme_override_constants/separation = 14
+
+[node name="Title" type="Label" parent="HUD/PauseMenu/Panel/Content"]
+layout_mode = 2
+text = "Paused"
+horizontal_alignment = 1
+label_settings = SubResource("LabelSettings_vertical_slice")
+
+[node name="ResumeButton" type="Button" parent="HUD/PauseMenu/Panel/Content"]
+custom_minimum_size = Vector2(260, 44)
+process_mode = 3
+layout_mode = 2
+text = "Resume"
+
+[node name="MainMenuButton" type="Button" parent="HUD/PauseMenu/Panel/Content"]
+custom_minimum_size = Vector2(260, 44)
+process_mode = 3
+layout_mode = 2
+text = "Main Menu"
+
+[node name="QuitButton" type="Button" parent="HUD/PauseMenu/Panel/Content"]
+custom_minimum_size = Vector2(260, 44)
+process_mode = 3
+layout_mode = 2
+text = "Quit"
