@@ -8,11 +8,11 @@ export const TUNING = {
     angularDamping: 0.05,
     linearDamping: 0.02,
     /** Below this ground slope (deg) a slow stone is statically held. */
-    holdSlopeDeg: 8,
+    holdSlopeDeg: 6,
     /** Speed (m/s) under which the static hold may engage. */
     holdSpeedEps: 0.18,
-    /** Kinetic rolling resistance coefficient (force = k * m * g). */
-    kineticResistance: 0.02,
+    /** Kinetic rolling resistance coefficient (decel = k · g); balances gravity at ~atan(k). */
+    kineticResistance: 0.09,
     /** Extra static resistance force (N) that must be overcome to break away. */
     staticBreakawayForce: 260,
   },
