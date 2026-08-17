@@ -19,6 +19,14 @@ export class AutoDriver implements InputSource {
     switch (this.beat) {
       case 'approach':
         return { ...IDLE_INTENT, move: { x: 0, z: -1 } }
+      case 'hover': // walk into reach, no buttons
+        return this.time < 1.5 ? { ...IDLE_INTENT, move: { x: 0, z: -1 } } : IDLE_INTENT
+      case 'press': // walk in, then both hands full while following
+        if (this.time < 1.5) return { ...IDLE_INTENT, move: { x: 0, z: -1 } }
+        return { ...IDLE_INTENT, move: { x: 0, z: -1 }, leftHand: 1, rightHand: 1 }
+      case 'left': // left hand only — stone visibly deflects right
+        if (this.time < 1.5) return { ...IDLE_INTENT, move: { x: 0, z: -1 } }
+        return { ...IDLE_INTENT, move: { x: 0, z: -1 }, leftHand: 1, rightHand: 0 }
       default:
         return IDLE_INTENT
     }

@@ -82,8 +82,10 @@ export class Stone {
 
   /**
    * Apply this step's per-hand push forces at their contact points.
-   * From rest, the static breakaway threshold is subtracted first — a
-   * stalled stone needs visible effort before it starts moving.
+   * Two honest limits:
+   * - From rest, the static breakaway threshold is subtracted first.
+   * - Force fades as the stone outruns the hands along the push direction —
+   *   you cannot keep shoving something already rolling away from you.
    */
   applyPush(hands: PushForce[]): void {
     let scale = 1
@@ -92,8 +94,12 @@ export class Stone {
       const net = Math.max(total - S.staticBreakawayForce, 0)
       scale = total > 1e-6 ? net / total : 0
     }
+    const v = this.body.linvel()
     for (const h of hands) {
-      const impulse = h.magnitude * scale * FIXED_DT
+      const vAlong = v.x * h.dir.x + v.y * h.dir.y + v.z * h.dir.z
+      const fade = Math.min(Math.max((TUNING.push.handSpeedMax - vAlong) / TUNING.push.handSpeedFade, 0), 1)
+      const impulse = h.magnitude * scale * fade * FIXED_DT
+      if (impulse <= 0) continue
       this.body.applyImpulseAtPoint(
         { x: h.dir.x * impulse, y: h.dir.y * impulse, z: h.dir.z * impulse },
         h.point,

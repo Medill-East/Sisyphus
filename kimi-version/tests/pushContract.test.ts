@@ -85,6 +85,17 @@ describe('push feel contract', () => {
     expect(z0 - rig.stone.position().z).toBeGreaterThan(0.8)
   })
 
+  it('sustained full push settles at hand speed, not runaway', () => {
+    const rig = makeRig()
+    pushSeconds(rig, 1, 1, 3)
+    const v1 = rig.stone.speed()
+    pushSeconds(rig, 1, 1, 1)
+    const v2 = rig.stone.speed()
+    expect(v1).toBeGreaterThan(1.0)
+    expect(v1).toBeLessThan(3.5)
+    expect(v2).toBeLessThan(v1 + 1.0) // terminal, not still accelerating hard
+  })
+
   it('releasing both hands lets the stone coast, roll back, and come to rest', () => {
     const rig = makeRig()
     pushSeconds(rig, 0.5, 0.5, 1)

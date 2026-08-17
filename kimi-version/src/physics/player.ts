@@ -8,12 +8,15 @@ export class Player {
   readonly body: RAPIER.RigidBody
   private readonly collider: RAPIER.Collider
   private readonly ctrl: RAPIER.KinematicCharacterController
+  /** Feet position (ground contact); the kinematic capsule rides CENTER_OFFSET above it. */
   pose: PlayerPose
+
+  private static readonly CENTER_OFFSET = 0.9 + TUNING.player.radius + 0.04
 
   constructor(pw: PhysicsWorld, x: number, z: number) {
     this.pose = { pos: { x, y: sampleHeight(x, z), z }, bodyYaw: 0 }
     this.body = pw.world.createRigidBody(
-      RAPIER.RigidBodyDesc.kinematicPositionBased().setTranslation(x, this.pose.pos.y, z),
+      RAPIER.RigidBodyDesc.kinematicPositionBased().setTranslation(x, this.pose.pos.y + Player.CENTER_OFFSET, z),
     )
     this.collider = pw.world.createCollider(
       RAPIER.ColliderDesc.capsule(0.9, TUNING.player.radius),
@@ -48,6 +51,10 @@ export class Player {
       pos: { x: this.pose.pos.x + m.x, y: this.pose.pos.y + m.y, z: this.pose.pos.z + m.z },
       bodyYaw: next.bodyYaw,
     }
-    this.body.setNextKinematicTranslation(this.pose.pos)
+    this.body.setNextKinematicTranslation({
+      x: this.pose.pos.x,
+      y: this.pose.pos.y + Player.CENTER_OFFSET,
+      z: this.pose.pos.z,
+    })
   }
 }

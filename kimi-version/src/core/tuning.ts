@@ -19,6 +19,10 @@ export const TUNING = {
   push: {
     /** Force per fully-pressed hand (N). */
     maxForcePerHand: 950,
+    /** Hand speed limit (m/s): push force fades as the stone outruns the hands. */
+    handSpeedMax: 2.0,
+    /** Fade band (m/s) above handSpeedMax down to zero force. */
+    handSpeedFade: 0.9,
     /** Chest-to-surface distance (m) within which hands may engage. */
     reachDistance: 0.72,
     /** Hysteresis multiplier for staying engaged. */
@@ -28,9 +32,10 @@ export const TUNING = {
   },
   player: {
     eyeHeight: 1.62,
-    radius: 0.34,
+    /** Capsule radius doubles as the push-stance standoff from the stone surface. */
+    radius: 0.5,
     walkSpeed: 3.4,
-    engagedWalkSpeed: 1.9,
+    engagedWalkSpeed: 2.1,
     turnLerp: 10,
   },
   camera: {

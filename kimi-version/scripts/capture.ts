@@ -18,6 +18,8 @@ async function main() {
       page.on('console', (m) => console.log(`[${name}]`, m.text()))
       await page.goto(`${URL_BASE}/?auto=${name}&t=${dur ?? '3'}`)
       await page.waitForFunction(() => (window as unknown as { __beatReady?: boolean }).__beatReady, null, { timeout: 30000 })
+      const state = await page.evaluate(() => (window as unknown as { __game?: { debugState?: () => unknown } }).__game?.debugState?.())
+      console.log(`[${name}] state:`, JSON.stringify(state))
       await page.screenshot({ path: `evidence/${name}.png` })
       console.log(`captured evidence/${name}.png`)
       await page.close()
