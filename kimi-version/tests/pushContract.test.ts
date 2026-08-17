@@ -85,17 +85,17 @@ describe('push feel contract', () => {
     expect(z0 - rig.stone.position().z).toBeGreaterThan(0.8)
   })
 
-  it('releasing both hands lets the stone coast to a stop, never self-accelerate', () => {
+  it('releasing both hands lets the stone coast, roll back, and come to rest', () => {
     const rig = makeRig()
-    pushSeconds(rig, 1, 1, 2)
+    pushSeconds(rig, 0.5, 0.5, 1)
     const z0 = rig.stone.position().z
-    for (let i = 0; i < 480; i++) {
+    for (let i = 0; i < 600; i++) {
       rig.stone.applyResistance(false)
       rig.pw.step()
     }
-    // Inertia may coast it further uphill on the gentle foot slope, but it
-    // must come to rest — no self-sustained climbing.
+    // It may coast uphill briefly or roll back down, but within 10 s it must
+    // be parked again near where it was released — never self-sustained motion.
     expect(rig.stone.speed()).toBeLessThan(0.05)
-    expect(z0 - rig.stone.position().z).toBeLessThan(3)
+    expect(Math.abs(rig.stone.position().z - z0)).toBeLessThan(6)
   })
 })

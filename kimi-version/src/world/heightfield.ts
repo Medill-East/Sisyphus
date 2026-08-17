@@ -31,10 +31,18 @@ function sideProfile(t: number): number {
 /**
  * Terrain height. z > 0 is the front side (foot at z = frontLength),
  * z < 0 the back side (foot at z = -backLength). Ridge crest at z = 0.
+ * Beyond each foot the apron dips into a shallow collecting basin with a
+ * raised rim, so a runaway stone gathers there instead of escaping.
  */
 export function sampleHeight(x: number, z: number): number {
-  const t = z >= 0 ? z / M.frontLength : -z / M.backLength
-  let h = sideProfile(t)
+  const over = z > M.frontLength ? z - M.frontLength : z < -M.backLength ? -z - M.backLength : 0
+  let h: number
+  if (over > 0) {
+    h = -0.55 * Math.sin(Math.PI * Math.min(over / 12, 1)) + (over > 8 ? 0.8 * (over - 8) ** 2 : 0)
+  } else {
+    const t = z >= 0 ? z / M.frontLength : -z / M.backLength
+    h = sideProfile(t)
+  }
   const ax = Math.abs(x)
   if (ax > M.pathHalfWidth) {
     const over = (ax - M.pathHalfWidth) / M.pathHalfWidth

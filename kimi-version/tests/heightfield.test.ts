@@ -45,4 +45,10 @@ describe('heightfield', () => {
   it('noise is deterministic', () => {
     expect(sampleHeight(9.3, 12.7)).toBe(sampleHeight(9.3, 12.7))
   })
+
+  it('collects runaway stones in a basin beyond each foot', () => {
+    expect(sampleHeight(0, M.frontLength + 5)).toBeLessThan(-0.2)
+    expect(sampleHeight(0, M.frontLength + 12)).toBeGreaterThan(0) // rim
+    expect(sampleHeight(0, -M.backLength - 5)).toBeLessThan(-0.2)
+  })
 })
