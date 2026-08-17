@@ -9,6 +9,10 @@ import { Lighting } from '../world/lighting'
 import { BodyRig } from '../body/BodyRig'
 import { CameraRig } from '../camera/CameraRig'
 import { LoopDirector } from '../game/LoopDirector'
+import { buildCrestMarker } from '../world/crestMarker'
+import { Dust } from '../render/dust'
+import { ScrapeAudio } from '../audio/scrape'
+import { rumble } from './rumble'
 import type { Vec3 } from '../physics/vec3'
 import { TUNING } from './tuning'
 import { IDLE_INTENT, type InputIntent } from './input'
@@ -32,7 +36,10 @@ export class Game {
   private acc = 0
   private last = 0
   readonly director = new LoopDirector()
+  readonly scrape = new ScrapeAudio()
   private warmthSmoothed = 0
+  private readonly dust = new Dust()
+  private wasHeld = false
 
   constructor(parent: HTMLElement, private readonly source: InputSource, readonly camRig: CameraRig = new CameraRig()) {
     this.renderer = new THREE.WebGLRenderer({ antialias: true })
@@ -44,6 +51,8 @@ export class Game {
 
     this.camera = new THREE.PerspectiveCamera(TUNING.camera.fov, innerWidth / innerHeight, 0.08, 900)
     this.scene.add(buildMountainMesh())
+    this.scene.add(buildCrestMarker())
+    this.scene.add(this.dust)
     this.sky = new Sky(this.scene)
     this.lighting = new Lighting(this.scene)
 
@@ -92,9 +101,21 @@ export class Game {
     }
   }
 
+  /** Debug reset (R / Start): stone and player return to the current climb-side foot. */
+  private resetRun(): void {
+    const M = TUNING.mountain
+    const side = this.director.run.climbSide
+    const z = side > 0 ? M.frontLength - 4 : -(M.backLength - 4)
+    this.stone.body.setTranslation({ x: 0, y: sampleHeight(0, z) + TUNING.stone.radius + 0.05, z }, true)
+    this.stone.body.setLinvel({ x: 0, y: 0, z: 0 }, true)
+    this.stone.body.setAngvel({ x: 0, y: 0, z: 0 }, true)
+    this.player.pose = { pos: { x: 0, y: sampleHeight(0, z + side * 6), z: z + side * 6 }, bodyYaw: 0 }
+  }
+
   fixedStep(dt: number): void {
     ;(this.source as { sense?: (s: Vec3, p: Vec3) => void }).sense?.(this.stone.position(), this.player.pose.pos)
     const intent = this.source.poll(dt) ?? IDLE_INTENT
+    if (intent.reset) this.resetRun()
     const engaged = this.rig.engageAmount() > 0.5
     this.player.move(this.pw, { ...intent, engaged, stonePos: this.stone.position() }, dt)
     const pressing = this.rig.pose(
@@ -108,6 +129,15 @@ export class Game {
     this.stone.applyPush(pressing)
     this.stone.applyResistance(pressing.length > 0)
     this.pw.step()
+    // Breakaway beat: held → moving under force puffs grit at the stronger hand.
+    if (this.wasHeld && !this.stone.held && pressing.length > 0) {
+      const stronger = pressing.reduce((a, b) => (a.magnitude >= b.magnitude ? a : b))
+      this.dust.burst(stronger.point)
+    }
+    this.wasHeld = this.stone.held
+    const av = this.stone.body.angvel()
+    this.scrape.update(Math.hypot(av.x, av.y, av.z), this.stone.speed() > 0.02)
+    if (pressing.length > 0) rumble(intent.leftHand, intent.rightHand)
     this.director.update(dt, this.stone.position(), this.stone.speed(), this.player.pose.pos, this.rig.engageAmount() > 0.5, this.rig.anyPressing())
     this.warmthSmoothed += (this.director.warmth() - this.warmthSmoothed) * dt * 0.8
   }
@@ -121,6 +151,7 @@ export class Game {
     this.camera.position.set(p.x, p.y + TUNING.player.eyeHeight, p.z)
     this.camRig.update(FIXED_DT, this.camera, p, this.player.pose.bodyYaw, this.rig.engageAmount(), this.rig.currentContact())
     this.sky.setWarmth(this.warmthSmoothed)
+    this.dust.update(FIXED_DT)
     this.lighting.follow(p.x, p.z)
     this.sky.mesh.position.copy(this.camera.position)
     this.renderer.render(this.scene, this.camera)

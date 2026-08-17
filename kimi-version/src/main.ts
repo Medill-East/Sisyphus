@@ -9,6 +9,7 @@ await RAPIER.init()
 const cam = new CameraRig()
 const auto = autoFromUrl()
 const game = new Game(document.body, auto ?? new HumanSource(document.body, cam), cam)
+addEventListener('click', () => game.scrape.start(), { once: true })
 if (!auto) {
   const hud = new Hud()
   setInterval(() => hud.update(game.director.run), 120)

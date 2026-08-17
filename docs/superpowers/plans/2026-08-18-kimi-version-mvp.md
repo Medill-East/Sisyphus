@@ -1,6 +1,6 @@
 # Kimi Version MVP Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Build a clean-room, physically honest, visually readable first-person push-the-stone MVP loop (`approach → engage → push → ridge release → descent → result`) in `kimi-version/`, per `docs/superpowers/specs/2026-08-18-kimi-version-mvp-design.md`.
 
@@ -29,12 +29,12 @@
 - Create: `kimi-version/src/core/tuning.ts`
 - Create: `kimi-version/tests/smoke.test.ts`
 
-- [ ] **Step 1: Verify toolchain**
+- [x] **Step 1: Verify toolchain**
 
 Run: `node -v && npm -v`
 Expected: Node ≥ 18 (any recent LTS). If missing, stop and report.
 
-- [ ] **Step 2: Write scaffold files**
+- [x] **Step 2: Write scaffold files**
 
 `kimi-version/package.json`:
 
@@ -229,12 +229,12 @@ describe('scaffold', () => {
 })
 ```
 
-- [ ] **Step 3: Install and verify**
+- [x] **Step 3: Install and verify**
 
 Run: `cd kimi-version && npm install && npm run test && npm run build`
 Expected: vitest 1 passed; vite build succeeds.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add kimi-version && git commit -m "feat(kimi-version): 工程脚手架（Vite+TS+three+Rapier+vitest）"
@@ -255,7 +255,7 @@ The single source of truth for terrain: `sampleHeight(x, z)`. Physics collider (
 - Banking: for `|x| > pathHalfWidth`, add `bankRise * ((|x| - pathHalfWidth) / pathHalfWidth) ** 1.4`.
 - Noise: deterministic value noise, amplitude `noiseAmplitude`, zero inside the path band, fading in by `|x| = 2 * pathHalfWidth`.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 `kimi-version/tests/heightfield.test.ts`:
 
@@ -310,12 +310,12 @@ describe('heightfield', () => {
 })
 ```
 
-- [ ] **Step 2: Run to verify it fails**
+- [x] **Step 2: Run to verify it fails**
 
 Run: `cd kimi-version && npx vitest run tests/heightfield.test.ts`
 Expected: FAIL — module not found.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 `kimi-version/src/world/heightfield.ts`:
 
@@ -377,12 +377,12 @@ export function slopeDegAt(x: number, z: number): number {
 }
 ```
 
-- [ ] **Step 4: Run tests**
+- [x] **Step 4: Run tests**
 
 Run: `npx vitest run tests/heightfield.test.ts`
 Expected: 5 passed. If max grade falls outside 10–24°, adjust `ridgeHeight`/`frontLength`/`backLength` in `TUNING` and re-run (this is the intended calibration).
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add kimi-version && git commit -m "feat(kimi-version): 山体高度场模型（双峰余弦坡+挡坡+确定性噪声）"
@@ -400,7 +400,7 @@ git add kimi-version && git commit -m "feat(kimi-version): 山体高度场模型
 
 This is the make-or-break calibration: if a Rapier sphere does not rest, hold, and roll back believably on our heightfield, nothing else matters. Rapier's heightfield heights layout (row/column order) is verified empirically by the drop test; if rest heights come out mirrored, transpose the index math inside `terrainCollider.ts` only.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 `kimi-version/tests/stonePhysics.test.ts`:
 
@@ -465,12 +465,12 @@ describe('stone on terrain', () => {
 })
 ```
 
-- [ ] **Step 2: Run to verify it fails**
+- [x] **Step 2: Run to verify it fails**
 
 Run: `npx vitest run tests/stonePhysics.test.ts`
 Expected: FAIL — modules not found.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 `kimi-version/src/physics/PhysicsWorld.ts`:
 
@@ -631,7 +631,7 @@ export class Stone {
 
 `FIXED_DT` import note: `stone.ts` imports it from `PhysicsWorld.ts` (exported there as `export const FIXED_DT = 1 / 60`).
 
-- [ ] **Step 4: Run tests and calibrate**
+- [x] **Step 4: Run tests and calibrate**
 
 Run: `npx vitest run tests/stonePhysics.test.ts`
 Expected: 3 passed. Known calibration points, fix locally and re-run:
@@ -639,7 +639,7 @@ Expected: 3 passed. Known calibration points, fix locally and re-run:
 - Rest Y off by a constant → check `setTranslation` of the heightfield matches the z-offset math `(frontLength - backLength) / 2`.
 - Stone never holds on gentle grade → verify `holdSpeedEps` / `holdSlopeDeg` against the actual grade at `frontLength * 0.92` (read with `slopeDegAt`).
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add kimi-version && git commit -m "feat(kimi-version): Rapier 世界 + 高度场地形 + 石头静置/回滚标定"
@@ -656,7 +656,7 @@ git add kimi-version && git commit -m "feat(kimi-version): Rapier 世界 + 高�
 
 One pure module owns contact geometry so physics, IK, and tests share it. Conventions: player faces body yaw `θ` (0 = looking toward −Z, i.e. uphill when on the front side); `side = -1` is the left hand, `+1` the right. Push direction = from shoulder through the contact point toward the sphere center. Left hand therefore lands on the stone's left surface and pushes it rightward — the honest geometry confirmed in the spec.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 `kimi-version/tests/pushModel.test.ts`:
 
@@ -709,12 +709,12 @@ describe('pushModel', () => {
 })
 ```
 
-- [ ] **Step 2: Run to verify it fails**
+- [x] **Step 2: Run to verify it fails**
 
 Run: `npx vitest run tests/pushModel.test.ts`
 Expected: FAIL — module not found.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 `kimi-version/src/physics/vec3.ts`:
 
@@ -780,12 +780,12 @@ export function withinReach(center: Vec3, radius: number, chest: Vec3, reach: nu
 }
 ```
 
-- [ ] **Step 4: Run tests**
+- [x] **Step 4: Run tests**
 
 Run: `npx vitest run tests/pushModel.test.ts`
 Expected: 4 passed.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add kimi-version && git commit -m "feat(kimi-version): 推球接触纯数学模型（肩部/接触点/发力方向）"
@@ -801,7 +801,7 @@ git add kimi-version && git commit -m "feat(kimi-version): 推球接触纯数学
 
 This suite is the executable form of the spec's four bars: uphill progress, honest left/right deflection, static breakaway, sustained rolling. All headless in Node.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 `kimi-version/tests/pushContract.test.ts`:
 
@@ -907,12 +907,12 @@ describe('push feel contract', () => {
 })
 ```
 
-- [ ] **Step 2: Run to verify it fails**
+- [x] **Step 2: Run to verify it fails**
 
 Run: `npx vitest run tests/pushContract.test.ts`
 Expected: FAIL — `applyPush` / `PushForce` not exported.
 
-- [ ] **Step 3: Implement `applyPush` in `stone.ts`**
+- [x] **Step 3: Implement `applyPush` in `stone.ts`**
 
 Add to `kimi-version/src/physics/stone.ts` (after `breakawayForce`):
 
@@ -950,12 +950,12 @@ and inside `Stone`:
   }
 ```
 
-- [ ] **Step 4: Run tests and calibrate**
+- [x] **Step 4: Run tests and calibrate**
 
 Run: `npx vitest run tests/pushContract.test.ts`
 Expected: 6 passed. Calibration if a threshold fails: adjust `maxForcePerHand`, `staticBreakawayForce`, or `kineticResistance` in `TUNING` — keep the *directional* assertions (tests 2–4) sacred; only magnitudes may move.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add kimi-version && git commit -m "feat(kimi-version): 推球手感数值契约（上行/左右偏转/静息起动/持续）"
@@ -974,7 +974,7 @@ git add kimi-version && git commit -m "feat(kimi-version): 推球手感数值契
 
 All devices merge into one `InputIntent`. Movement math is pure and tested; the Rapier wrapper is a thin shell over `playerMath`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 `kimi-version/tests/input.test.ts`:
 
@@ -1076,12 +1076,12 @@ describe('playerMath', () => {
 })
 ```
 
-- [ ] **Step 2: Run to verify they fail**
+- [x] **Step 2: Run to verify they fail**
 
 Run: `npx vitest run tests/input.test.ts tests/playerMath.test.ts`
 Expected: FAIL — modules not found.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 `kimi-version/src/core/input.ts`:
 
@@ -1262,12 +1262,12 @@ export class Player {
 }
 ```
 
-- [ ] **Step 4: Run tests**
+- [x] **Step 4: Run tests**
 
 Run: `npx vitest run tests/input.test.ts tests/playerMath.test.ts`
 Expected: all passed (3 + 3 + 1 + 4).
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add kimi-version && git commit -m "feat(kimi-version): 输入意图层（键鼠+手柄）与运动学角色"
@@ -1281,7 +1281,7 @@ git add kimi-version && git commit -m "feat(kimi-version): 输入意图层（键
 - Create: `kimi-version/src/body/armIk.ts`
 - Test: `kimi-version/tests/armIk.test.ts`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 `kimi-version/tests/armIk.test.ts`:
 
@@ -1320,12 +1320,12 @@ describe('armIk', () => {
 })
 ```
 
-- [ ] **Step 2: Run to verify it fails**
+- [x] **Step 2: Run to verify it fails**
 
 Run: `npx vitest run tests/armIk.test.ts`
 Expected: FAIL — module not found.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 `kimi-version/src/body/armIk.ts`:
 
@@ -1361,12 +1361,12 @@ export function solveTwoBoneIK(shoulder: Vec3, target: Vec3, l1: number, l2: num
 }
 ```
 
-- [ ] **Step 4: Run tests**
+- [x] **Step 4: Run tests**
 
 Run: `npx vitest run tests/armIk.test.ts`
 Expected: 3 passed.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add kimi-version && git commit -m "feat(kimi-version): 双臂解析式两骨 IK 求解器"
@@ -1388,7 +1388,7 @@ git add kimi-version && git commit -m "feat(kimi-version): 双臂解析式两骨
 
 The game assembles here for the first time: terrain + sky + light + stone + free camera, driven by the fixed-step loop. The auto driver feeds scripted intents from URL params so Playwright can capture deterministic beats. From this task on, every visual claim is verified by reading `evidence/*.png`.
 
-- [ ] **Step 1: Implement world rendering**
+- [x] **Step 1: Implement world rendering**
 
 `kimi-version/src/world/mountainMesh.ts`:
 
@@ -1531,7 +1531,7 @@ export class StoneMesh extends THREE.Mesh {
 }
 ```
 
-- [ ] **Step 2: Implement Game orchestrator + fixed loop + auto driver**
+- [x] **Step 2: Implement Game orchestrator + fixed loop + auto driver**
 
 `kimi-version/src/core/Game.ts`:
 
@@ -1725,12 +1725,12 @@ main().catch((e) => {
 })
 ```
 
-- [ ] **Step 3: Build, then capture the first beat and read it**
+- [x] **Step 3: Build, then capture the first beat and read it**
 
 Run: `npm run build && npx playwright install chromium && npx tsx scripts/capture.ts rest:2`
 Expected: `evidence/rest.png` exists. Open it: mountain, path band, sky, and the stone ahead must all read clearly. If the stone is missing/misplaced, fix spawn or camera before continuing — this is the visual baseline.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add kimi-version && git commit -m "feat(kimi-version): 渲染基础（山体/天空/光照/石头）+ 截图自检管线"
@@ -1747,7 +1747,7 @@ git add kimi-version && git commit -m "feat(kimi-version): 渲染基础（山体
 - Modify: `kimi-version/src/dev/autoDriver.ts` (add `hover`, `press`, `left` beats)
 - Test: `kimi-version/tests/handState.test.ts`
 
-- [ ] **Step 1: Write the failing test for the hand state machine**
+- [x] **Step 1: Write the failing test for the hand state machine**
 
 `kimi-version/tests/handState.test.ts`:
 
@@ -1779,12 +1779,12 @@ describe('hand state machine', () => {
 })
 ```
 
-- [ ] **Step 2: Run to verify it fails**
+- [x] **Step 2: Run to verify it fails**
 
 Run: `npx vitest run tests/handState.test.ts`
 Expected: FAIL — module not found.
 
-- [ ] **Step 3: Implement rig + hands**
+- [x] **Step 3: Implement rig + hands**
 
 `kimi-version/src/body/HandView.ts`:
 
@@ -1974,12 +1974,12 @@ Extend `AutoDriver` beats:
         return { ...IDLE_INTENT, move: { x: 0, z: -0.25 }, leftHand: 1, rightHand: 0 }
 ```
 
-- [ ] **Step 4: Run tests, build, capture beats, read them**
+- [x] **Step 4: Run tests, build, capture beats, read them**
 
 Run: `npx vitest run tests/handState.test.ts && npm run build && npx tsx scripts/capture.ts hover:2.5,press:4,left:4`
 Expected: tests pass; `evidence/hover.png`, `evidence/press.png`, `evidence/left.png` exist. Read all three: hands must visibly rise onto the stone surface (no interpenetration, palms on the rock), arms bend at the elbow, and in `left.png` the stone must sit visibly right of its `hover` position.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add kimi-version && git commit -m "feat(kimi-version): 第一人称身体 + 手部状态机 + IK 贴合石面"
@@ -1997,7 +1997,7 @@ git add kimi-version && git commit -m "feat(kimi-version): 第一人称身体 + 
 - Modify: `kimi-version/src/core/Game.ts` (render through `CameraRig`)
 - Test: `kimi-version/tests/headMath.test.ts`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 `kimi-version/tests/headMath.test.ts`:
 
@@ -2033,12 +2033,12 @@ describe('headMath', () => {
 })
 ```
 
-- [ ] **Step 2: Run to verify it fails**
+- [x] **Step 2: Run to verify it fails**
 
 Run: `npx vitest run tests/headMath.test.ts`
 Expected: FAIL — module not found.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 `kimi-version/src/camera/headMath.ts`:
 
@@ -2175,12 +2175,12 @@ Update `Game` to accept a `CameraRig` (default new one), and in `render()` repla
 this.camRig.update(FIXED_DT, this.camera, p, this.player.pose.bodyYaw, this.rig.engageAmount())
 ```
 
-- [ ] **Step 4: Run tests + build + capture**
+- [x] **Step 4: Run tests + build + capture**
 
 Run: `npx vitest run tests/headMath.test.ts && npm run build && npx tsx scripts/capture.ts press:4`
 Expected: 4 passed; `evidence/press.png` now shows the closer engaged framing (compare with the Task 8 shot — visibly nearer the stone).
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add kimi-version && git commit -m "feat(kimi-version): 第一人称镜头（脖子限位 + 推球贴近）与真人输入源"
@@ -2198,7 +2198,7 @@ git add kimi-version && git commit -m "feat(kimi-version): 第一人称镜头（
 - Modify: `kimi-version/src/dev/autoDriver.ts` (add `release`, `descent` beats)
 - Test: `kimi-version/tests/phases.test.ts`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 `kimi-version/tests/phases.test.ts`:
 
@@ -2245,12 +2245,12 @@ describe('loop phases', () => {
 })
 ```
 
-- [ ] **Step 2: Run to verify it fails**
+- [x] **Step 2: Run to verify it fails**
 
 Run: `npx vitest run tests/phases.test.ts`
 Expected: FAIL — module not found.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 `kimi-version/src/game/phases.ts`:
 
@@ -2412,17 +2412,17 @@ AutoDriver beats for the far side (scripted full-loop is overkill; instead the d
         return { ...IDLE_INTENT, move: { x: 0, z: -1 } }
 ```
 
-- [ ] **Step 4: Run tests**
+- [x] **Step 4: Run tests**
 
 Run: `npx vitest run tests/phases.test.ts`
 Expected: 3 passed.
 
-- [ ] **Step 5: Build + capture the release beat**
+- [x] **Step 5: Build + capture the release beat**
 
 Run: `npm run build && npx tsx scripts/capture.ts release:12,descent:26`
 Expected: two PNGs. Read them: `release.png` shows the stone at/over the crest with hands disengaging; `descent.png` shows warmer light and the player walking down. If the stone has not crested in `release.png`, raise `t` — do not weaken physics to make the shot work.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add kimi-version && git commit -m "feat(kimi-version): 循环节拍状态机 + HUD + 下山暖光"
@@ -2440,7 +2440,7 @@ git add kimi-version && git commit -m "feat(kimi-version): 循环节拍状态机
 - Modify: `kimi-version/src/core/Game.ts` (wire audio + rumble + dust)
 - Create: `kimi-version/README.md`
 
-- [ ] **Step 1: Implement**
+- [x] **Step 1: Implement**
 
 `kimi-version/src/audio/scrape.ts`:
 
@@ -2586,12 +2586,12 @@ Spec: `../docs/superpowers/specs/2026-08-18-kimi-version-mvp-design.md`
     # 截图落在 evidence/，逐个目检
 ```
 
-- [ ] **Step 2: Full verification pass**
+- [x] **Step 2: Full verification pass**
 
 Run: `npm run test && npm run build && npx tsx scripts/capture.ts rest:2,hover:2.5,press:4,left:4,release:12,descent:26`
 Expected: all vitest suites green; six PNGs in `evidence/`; read every one against the spec's four bars (表意 / 重量 / 接触 / 循环) and fix what fails the eye, not the test.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add kimi-version && git commit -m "feat(kimi-version): 摩擦音/震动反馈/README + 全节拍证据"
@@ -2604,3 +2604,18 @@ git add kimi-version && git commit -m "feat(kimi-version): 摩擦音/震动反�
 - Heightfield row/column order for Rapier is calibrated by the Task 2 drop test (single swap point in `terrainCollider.ts`).
 - `timeOfImpact` vs `toi` across rapier3d-compat versions is absorbed inside `PhysicsWorld.groundProbe`.
 - Left/right deflection convention: facing −z, left hand at −x, force through the sphere center pushes the stone +x — locked by `tests/pushModel.test.ts` and `tests/pushContract.test.ts`.
+
+---
+
+## Execution status (2026-08-18, recorder: Kimi)
+
+All 12 tasks implemented and committed. 46 vitest assertions green. Numeric feel contract, basin containment, loop phases all verified headlessly. Beat evidence (rest/hover/press/left/release/descent) captured via Playwright and reviewed as images; two rounds of visual iteration on camera framing and hand placement. Notable deviations from the plan text:
+
+- Rapier heightfield layout calibrated empirically: first index sweeps Z, second X (`terrainCollider.ts`), matching the plan's anticipated calibration point.
+- Kinetic resistance is deceleration-based (k·g), balancing gravity at ~5°; hold slope 6° (`tuning.ts`).
+- Push force fades above hand speed (`push.handSpeedMax`) — you cannot keep shoving a stone already rolling away; this is what keeps push contact stable.
+- Player capsule radius 0.5 doubles as the push-stance standoff.
+- Engaged camera is a high close-shoulder (back 0.42 / up 0.3) with −25°-clamped gaze bias, not a forward lean — readability won over raw closeness.
+- Auto driver gained lateral tracking + rollback let-go (bot competence, not game mechanics).
+- Basin deepened to −1.2 m with rock-wall level bounds after a released stone escaped the world edge; regression test added in `stonePhysics.test.ts`.
+- Loop signals split into `handsRaised` / `handsPressing`; result restart requires pressing.

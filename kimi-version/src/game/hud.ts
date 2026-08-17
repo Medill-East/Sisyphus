@@ -1,7 +1,7 @@
 import type { RunState } from './phases'
 
 const HINTS: Record<string, string> = {
-  approach: '走近石头 · WASD 移动 / 鼠标环顾',
+  approach: '走近石头 · WASD 移动 / 鼠标环顾（手柄先按任意键激活）',
   engaged: '按住 左键/右键（或 LT/RT）双手用力推',
   release: '放手吧',
   descent: '走下山去',
