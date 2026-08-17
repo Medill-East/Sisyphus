@@ -17,7 +17,7 @@ async function main() {
       const page = await browser.newPage({ viewport: { width: 1280, height: 720 } })
       page.on('console', (m) => console.log(`[${name}]`, m.text()))
       await page.goto(`${URL_BASE}/?auto=${name}&t=${dur ?? '3'}`)
-      await page.waitForFunction(() => (window as unknown as { __beatReady?: boolean }).__beatReady, null, { timeout: 30000 })
+      await page.waitForFunction(() => (window as unknown as { __beatReady?: boolean }).__beatReady, null, { timeout: 240000 })
       const state = await page.evaluate(() => (window as unknown as { __game?: { debugState?: () => unknown } }).__game?.debugState?.())
       console.log(`[${name}] state:`, JSON.stringify(state))
       await page.screenshot({ path: `evidence/${name}.png` })

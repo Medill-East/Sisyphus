@@ -55,4 +55,24 @@ describe('stone on terrain', () => {
     }
     expect(moved).toBe(true)
   })
+
+  it('a stone released over the back crest settles inside the basin, never escapes', () => {
+    const pw = new PhysicsWorld()
+    // Start just past the crest on the back side with a downhill nudge.
+    const z = -2
+    const stone = new Stone(pw, 0, sampleHeight(0, z) + TUNING.stone.radius + 0.3, z)
+    stone.body.setLinvel({ x: 0, y: 0, z: -2.5 }, true)
+    let maxAbs = 0
+    for (let i = 0; i < 60 * 40; i++) {
+      stone.applyResistance(false)
+      pw.step()
+      const p = stone.position()
+      maxAbs = Math.max(maxAbs, Math.abs(p.z))
+      expect(Number.isFinite(p.y)).toBe(true)
+    }
+    const end = stone.position()
+    expect(maxAbs).toBeLessThan(TUNING.mountain.backLength + 11)
+    expect(stone.speed()).toBeLessThan(0.25)
+    expect(end.z).toBeLessThan(-TUNING.mountain.backLength + 2) // gathered near the back foot
+  })
 })

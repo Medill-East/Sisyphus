@@ -1,5 +1,6 @@
 import RAPIER from '@dimforge/rapier3d-compat'
 import { buildTerrainCollider } from './terrainCollider'
+import { TUNING } from '../core/tuning'
 
 export const FIXED_DT = 1 / 60
 
@@ -10,6 +11,16 @@ export class PhysicsWorld {
     this.world = new RAPIER.World({ x: 0, y: -9.81, z: 0 })
     this.world.timestep = FIXED_DT
     this.world.createCollider(buildTerrainCollider())
+    // Level bounds: the runaway basin ends in a rock wall (invisible collider).
+    const M = TUNING.mountain
+    for (const side of [1, -1] as const) {
+      const foot = side > 0 ? M.frontLength : M.backLength
+      this.world.createCollider(
+        RAPIER.ColliderDesc.cuboid(M.worldHalfX, 6, 0.5)
+          .setTranslation(0, 4, side * (foot + 11))
+          .setFriction(0.6),
+      )
+    }
   }
 
   step(): void {

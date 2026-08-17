@@ -47,8 +47,8 @@ describe('heightfield', () => {
   })
 
   it('collects runaway stones in a basin beyond each foot', () => {
-    expect(sampleHeight(0, M.frontLength + 5)).toBeLessThan(-0.2)
-    expect(sampleHeight(0, M.frontLength + 12)).toBeGreaterThan(0) // rim
-    expect(sampleHeight(0, -M.backLength - 5)).toBeLessThan(-0.2)
+    expect(sampleHeight(0, M.frontLength + 5)).toBeLessThan(-0.8)
+    expect(sampleHeight(0, M.frontLength + 9)).toBeGreaterThan(0) // rim
+    expect(sampleHeight(0, -M.backLength - 5)).toBeLessThan(-0.8)
   })
 })

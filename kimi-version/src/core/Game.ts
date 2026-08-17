@@ -8,6 +8,8 @@ import { Sky } from '../world/sky'
 import { Lighting } from '../world/lighting'
 import { BodyRig } from '../body/BodyRig'
 import { CameraRig } from '../camera/CameraRig'
+import { LoopDirector } from '../game/LoopDirector'
+import type { Vec3 } from '../physics/vec3'
 import { TUNING } from './tuning'
 import { IDLE_INTENT, type InputIntent } from './input'
 import { sampleHeight } from '../world/heightfield'
@@ -29,6 +31,8 @@ export class Game {
   private readonly lighting: Lighting
   private acc = 0
   private last = 0
+  readonly director = new LoopDirector()
+  private warmthSmoothed = 0
 
   constructor(parent: HTMLElement, private readonly source: InputSource, readonly camRig: CameraRig = new CameraRig()) {
     this.renderer = new THREE.WebGLRenderer({ antialias: true })
@@ -84,10 +88,12 @@ export class Game {
       rightBlend: +this.rig.hands[1].sm.blend.toFixed(2),
       leftPhase: this.rig.hands[-1].sm.phase,
       rightPhase: this.rig.hands[1].sm.phase,
+      loop: this.director.run,
     }
   }
 
   fixedStep(dt: number): void {
+    ;(this.source as { sense?: (s: Vec3, p: Vec3) => void }).sense?.(this.stone.position(), this.player.pose.pos)
     const intent = this.source.poll(dt) ?? IDLE_INTENT
     const engaged = this.rig.engageAmount() > 0.5
     this.player.move(this.pw, { ...intent, engaged, stonePos: this.stone.position() }, dt)
@@ -102,6 +108,8 @@ export class Game {
     this.stone.applyPush(pressing)
     this.stone.applyResistance(pressing.length > 0)
     this.pw.step()
+    this.director.update(dt, this.stone.position(), this.stone.speed(), this.player.pose.pos, this.rig.engageAmount() > 0.5, this.rig.anyPressing())
+    this.warmthSmoothed += (this.director.warmth() - this.warmthSmoothed) * dt * 0.8
   }
 
   render(): void {
@@ -112,6 +120,7 @@ export class Game {
     this.stoneMesh.quaternion.set(rq.x, rq.y, rq.z, rq.w)
     this.camera.position.set(p.x, p.y + TUNING.player.eyeHeight, p.z)
     this.camRig.update(FIXED_DT, this.camera, p, this.player.pose.bodyYaw, this.rig.engageAmount(), this.rig.currentContact())
+    this.sky.setWarmth(this.warmthSmoothed)
     this.lighting.follow(p.x, p.z)
     this.sky.mesh.position.copy(this.camera.position)
     this.renderer.render(this.scene, this.camera)

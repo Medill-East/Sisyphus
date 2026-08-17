@@ -38,7 +38,7 @@ export function sampleHeight(x: number, z: number): number {
   const over = z > M.frontLength ? z - M.frontLength : z < -M.backLength ? -z - M.backLength : 0
   let h: number
   if (over > 0) {
-    h = -0.55 * Math.sin(Math.PI * Math.min(over / 12, 1)) + (over > 8 ? 0.8 * (over - 8) ** 2 : 0)
+    h = -1.2 * Math.sin(Math.PI * Math.min(over / 12, 1)) + (over > 6 ? 1.0 * (over - 6) ** 2 : 0)
   } else {
     const t = z >= 0 ? z / M.frontLength : -z / M.backLength
     h = sideProfile(t)

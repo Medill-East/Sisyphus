@@ -115,6 +115,11 @@ export class BodyRig extends THREE.Group {
     return Math.max(this.hands[-1].sm.blend, this.hands[1].sm.blend)
   }
 
+  /** True while at least one hand is actively pressing. */
+  anyPressing(): boolean {
+    return this.hands[-1].sm.phase === HandPhase.Pressing || this.hands[1].sm.phase === HandPhase.Pressing
+  }
+
   /** Representative contact for the camera gaze bias (the most-engaged hand). */
   currentContact(): Vec3 | null {
     let best: Vec3 | null = null
