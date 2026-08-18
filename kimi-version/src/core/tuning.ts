@@ -51,7 +51,10 @@ export const TUNING = {
     frontLength: 85,
     backLength: 72,
     pathHalfWidth: 2.2,
-    bankRise: 2.6,
+    /** Low berm lip at the track's edge (the worn track guides, not walls). */
+    bermRise: 0.5,
+    /** Open hillside: beyond the berm the ground falls away per meter factor. */
+    outerFall: 1.6,
     noiseAmplitude: 0.22,
     /** On-path micro relief (m): makes the stone wander, demands hand correction. */
     pathNoiseAmplitude: 0.04,

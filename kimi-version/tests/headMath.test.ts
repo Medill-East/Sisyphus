@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { clampHead, engagePitchBias, type NeckLimits } from '../src/camera/headMath'
+import { clampHead, type NeckLimits } from '../src/camera/headMath'
 
 const L: NeckLimits = { yawDeg: 120, pitchUpDeg: 55, pitchDownDeg: 40 }
 const rad = (d: number) => (d * Math.PI) / 180
@@ -25,16 +25,5 @@ describe('headMath', () => {
   it('clamps pitch both ways', () => {
     expect(clampHead(0, rad(80), 0, L).pitch).toBeCloseTo(rad(55))
     expect(clampHead(0, -rad(80), 0, L).pitch).toBeCloseTo(rad(-40))
-  })
-})
-
-describe('engagePitchBias', () => {
-  it('pulls pitch down toward a low contact while engaged', () => {
-    const d = engagePitchBias(1.9, { x: 0, y: 1.5, z: -0.4 }, 0, 1)
-    expect(d).toBeLessThan(0)
-  })
-
-  it('does nothing when disengaged', () => {
-    expect(engagePitchBias(1.9, { x: 0, y: 1.5, z: -0.4 }, 0, 0)).toBe(0)
   })
 })

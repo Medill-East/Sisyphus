@@ -10,6 +10,8 @@ export class Player {
   private readonly ctrl: RAPIER.KinematicCharacterController
   /** Feet position (ground contact); the kinematic capsule rides CENTER_OFFSET above it. */
   pose: PlayerPose
+  /** Smoothed speed (m/s) — gives the body mass: starts and stops are not instant. */
+  smoothedSpeed = 0
 
   private static readonly CENTER_OFFSET = 0.9 + TUNING.player.radius + 0.04
 
@@ -32,10 +34,16 @@ export class Player {
     intent: { move: { x: number; z: number }; engaged: boolean; stonePos: { x: number; y: number; z: number } | null; headYaw: number },
     dt: number,
   ): void {
+    const base = intent.engaged ? TUNING.player.engagedWalkSpeed : TUNING.player.walkSpeed
+    const moveLen = Math.min(Math.hypot(intent.move.x, intent.move.z), 1)
+    const desired = base * moveLen
+    const rate = desired > this.smoothedSpeed ? 7 : 11 // accelerate slower than braking: weight
+    this.smoothedSpeed += (desired - this.smoothedSpeed) * (1 - Math.exp(-rate * dt))
     const next = computeNextPose({
       pos: this.pose.pos,
       bodyYaw: this.pose.bodyYaw,
       headYaw: intent.headYaw,
+      speedScale: base > 0 ? this.smoothedSpeed / base : 0,
       groundY: sampleHeight,
       dt,
       tuning: TUNING.player,

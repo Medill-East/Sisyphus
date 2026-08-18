@@ -5,6 +5,8 @@ export interface PlayerStepInput {
   bodyYaw: number
   /** Current head yaw — in free mode the body simply matches it (FPS scheme). */
   headYaw: number
+  /** 0..1: smoothed-speed ratio from the Player (movement weight / inertia). */
+  speedScale: number
   groundY: (x: number, z: number) => number
   dt: number
   tuning: { walkSpeed: number; engagedWalkSpeed: number; turnLerp: number }
@@ -46,8 +48,8 @@ export function computeNextPose(input: PlayerStepInput): PlayerPose {
   const len = Math.hypot(mx, mz)
   const nx = len > 1 ? mx / len : mx
   const nz = len > 1 ? mz / len : mz
-  const dx = (right.x * nx + fwd.x * -nz) * speed * dt
-  const dz = (right.z * nx + fwd.z * -nz) * speed * dt
+  const dx = (right.x * nx + fwd.x * -nz) * speed * input.speedScale * dt
+  const dz = (right.z * nx + fwd.z * -nz) * speed * input.speedScale * dt
   const x = pos.x + dx
   const z = pos.z + dz
 

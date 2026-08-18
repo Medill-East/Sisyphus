@@ -4,6 +4,8 @@ import { Stone } from '../physics/stone'
 import { Player } from '../physics/player'
 import { StoneMesh } from '../render/StoneMesh'
 import { buildMountainMesh } from '../world/mountainMesh'
+import { buildScatter } from '../world/scatter'
+import { buildDistantRidges } from '../world/distantRidges'
 import { Sky } from '../world/sky'
 import { Lighting } from '../world/lighting'
 import { BodyRig } from '../body/BodyRig'
@@ -35,6 +37,8 @@ export class Game {
   private readonly lighting: Lighting
   private acc = 0
   private last = 0
+  private bobPhase = 0
+  private lastBobPos: { x: number; z: number } | null = null
   readonly director = new LoopDirector()
   readonly scrape = new ScrapeAudio()
   private warmthSmoothed = 0
@@ -47,10 +51,14 @@ export class Game {
     this.renderer.setPixelRatio(Math.min(devicePixelRatio, 2))
     this.renderer.shadowMap.enabled = true
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap
+    this.renderer.toneMapping = THREE.ACESFilmicToneMapping
+    this.renderer.toneMappingExposure = 1.08
     parent.appendChild(this.renderer.domElement)
 
-    this.camera = new THREE.PerspectiveCamera(TUNING.camera.fov, innerWidth / innerHeight, 0.08, 900)
+    this.camera = new THREE.PerspectiveCamera(TUNING.camera.fov, innerWidth / innerHeight, 0.08, 1400)
     this.scene.add(buildMountainMesh())
+    this.scene.add(buildScatter())
+    this.scene.add(buildDistantRidges())
     this.scene.add(buildCrestMarker())
     this.scene.add(this.dust)
     this.sky = new Sky(this.scene)
@@ -148,8 +156,14 @@ export class Game {
     this.stoneMesh.position.set(sp.x, sp.y, sp.z)
     const rq = this.stone.body.rotation()
     this.stoneMesh.quaternion.set(rq.x, rq.y, rq.z, rq.w)
-    this.camera.position.set(p.x, p.y + TUNING.player.eyeHeight, p.z)
-    this.camRig.update(FIXED_DT, this.camera, p, this.player.pose.bodyYaw, this.rig.engageAmount(), this.rig.currentContact())
+    // Step bob: phase advances with horizontal distance actually traveled.
+    if (this.lastBobPos) {
+      const dist = Math.hypot(p.x - this.lastBobPos.x, p.z - this.lastBobPos.z)
+      this.bobPhase += dist * ((Math.PI * 2) / 0.75)
+    }
+    this.lastBobPos = { x: p.x, z: p.z }
+    const bobAmount = Math.min(this.player.smoothedSpeed / TUNING.player.walkSpeed, 1)
+    this.camRig.update(FIXED_DT, this.camera, p, this.player.pose.bodyYaw, this.rig.engageAmount(), this.bobPhase, bobAmount)
     this.sky.setWarmth(this.warmthSmoothed)
     this.dust.update(FIXED_DT)
     this.lighting.follow(p.x, p.z)

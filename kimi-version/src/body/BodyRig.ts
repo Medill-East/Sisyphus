@@ -112,7 +112,13 @@ export class BodyRig extends THREE.Group {
       h.view.setLoad(h.sm.phase === HandPhase.Pressing ? input[side] : 0)
 
       if (h.sm.phase === HandPhase.Pressing && input[side] > 0.05) {
-        pressing.push({ side, point: contact.point, dir: contact.dir, magnitude: input[side] * TUNING.push.maxForcePerHand })
+        // Force only transmits through arms that actually reach: full force at
+        // the natural stance, fading to zero past full extension. You must
+        // walk into the stone (W) to keep pushing.
+        const reachFade = Math.min(Math.max((0.75 - chestDist) / 0.2, 0), 1)
+        if (reachFade > 0) {
+          pressing.push({ side, point: contact.point, dir: contact.dir, magnitude: input[side] * TUNING.push.maxForcePerHand * reachFade })
+        }
       }
     }
     return pressing

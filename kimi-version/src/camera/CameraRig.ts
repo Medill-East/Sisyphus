@@ -1,6 +1,6 @@
 import * as THREE from 'three'
 import { TUNING } from '../core/tuning'
-import { clampHead, engagePitchBias } from './headMath'
+import { clampHead } from './headMath'
 import type { Vec3 } from '../physics/vec3'
 
 const MOUSE_SENS = 0.0023
@@ -21,20 +21,18 @@ export class CameraRig {
     this.pitch -= dy * MOUSE_SENS
   }
 
-  /** Pose the camera. engage ∈ 0..1 from BodyRig.engageAmount(); contact = a hand contact if any. */
+  /** Pose the camera. engage ∈ 0..1 from BodyRig.engageAmount(); look is fully user-owned. */
   update(
     dt: number,
     camera: THREE.PerspectiveCamera,
     playerPos: Vec3,
     bodyYaw: number,
     engage: number,
-    contact: Vec3 | null,
+    bobPhase = 0,
+    bobAmount = 0,
   ): void {
     const c = TUNING.camera
     const eyeY = playerPos.y + TUNING.player.eyeHeight
-    if (contact) {
-      this.pitch += engagePitchBias(eyeY, { x: contact.x - playerPos.x, y: contact.y, z: contact.z - playerPos.z }, this.pitch, engage) * dt
-    }
     const clamped = clampHead(this.headYaw, this.pitch, bodyYaw, {
       yawDeg: c.neckYawLimitDeg,
       pitchUpDeg: c.neckPitchUpDeg,
@@ -49,12 +47,16 @@ export class CameraRig {
     const back = 0.42 * this.ease
     const lift = 0.3 * this.ease
     const fwd = { x: -Math.sin(bodyYaw), z: -Math.cos(bodyYaw) }
+    const right = { x: Math.cos(bodyYaw), z: -Math.sin(bodyYaw) }
+    // Step weight: gentle vertical bob + lateral sway while walking.
+    const bobY = Math.sin(bobPhase * 2) * 0.028 * bobAmount
+    const swayX = Math.sin(bobPhase) * 0.02 * bobAmount
     camera.position.set(
-      playerPos.x - fwd.x * back,
-      eyeY + lift,
-      playerPos.z - fwd.z * back,
+      playerPos.x - fwd.x * back + right.x * swayX,
+      eyeY + lift + bobY,
+      playerPos.z - fwd.z * back + right.z * swayX,
     )
-    camera.rotation.set(this.pitch, this.headYaw, 0, 'YXZ')
+    camera.rotation.set(this.pitch - 0.3 * this.ease, this.headYaw, 0, 'YXZ')
     const fov = c.fov + (c.engagedFov - c.fov) * this.ease
     if (Math.abs(fov - camera.fov) > 0.01) {
       camera.fov = fov

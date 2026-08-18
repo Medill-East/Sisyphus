@@ -6,6 +6,7 @@ const base = {
   pos: { x: 0, y: 0, z: 10 },
   bodyYaw: 0,
   headYaw: 0,
+  speedScale: 1,
   groundY: () => 0,
   dt: 1 / 60,
   tuning: TUNING.player,
