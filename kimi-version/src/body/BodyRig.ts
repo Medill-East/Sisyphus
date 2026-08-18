@@ -36,7 +36,7 @@ export class HandStateMachine {
 }
 
 const skinMat = new THREE.MeshStandardMaterial({ color: 0xc9a184, roughness: 0.85 })
-const sleeveMat = new THREE.MeshStandardMaterial({ color: 0x4a5568, roughness: 0.9 })
+const clothMat = new THREE.MeshStandardMaterial({ color: 0xd8cbb0, roughness: 0.95 })
 
 function limb(a: THREE.Vector3, b: THREE.Vector3, r: number, mat: THREE.Material): THREE.Mesh {
   const len = a.distanceTo(b)
@@ -53,6 +53,7 @@ export class BodyRig extends THREE.Group {
     [-1]: { sm: new HandStateMachine(), view: new HandView(true), limbs: new THREE.Group(), lastContact: null },
     [1]: { sm: new HandStateMachine(), view: new HandView(false), limbs: new THREE.Group(), lastContact: null },
   }
+  private time = 0
 
   constructor() {
     super()
@@ -74,15 +75,25 @@ export class BodyRig extends THREE.Group {
     stoneRadius: number,
     input: Record<-1 | 1, number>,
   ): { side: -1 | 1; point: Vec3; dir: Vec3; magnitude: number }[] {
+    this.time += dt
     const pressing: { side: -1 | 1; point: Vec3; dir: Vec3; magnitude: number }[] = []
     for (const side of [-1, 1] as const) {
-      const shoulder = computeShoulder(playerPos, bodyYaw, side, TUNING.push)
-      const contact = computeHandContact(stoneCenter, stoneRadius, shoulder)
+      const baseShoulder = computeShoulder(playerPos, bodyYaw, side, TUNING.push)
+      const contact = computeHandContact(stoneCenter, stoneRadius, baseShoulder)
       const chestDist = Math.hypot(playerPos.x - stoneCenter.x, playerPos.z - stoneCenter.z) - stoneRadius
       const inReach = chestDist < TUNING.push.reachDistance * TUNING.push.reachHysteresis
       const h = this.hands[side]
       h.sm.update(dt, { inReach, input: input[side] })
       h.lastContact = contact.point
+      const load = h.sm.phase === HandPhase.Pressing ? input[side] : 0
+
+      // Under load the body leans in: shoulders drop and push forward slightly.
+      const leanF = load * 0.05
+      const shoulder = {
+        x: baseShoulder.x - Math.sin(bodyYaw) * leanF,
+        y: baseShoulder.y - load * 0.06,
+        z: baseShoulder.z - Math.cos(bodyYaw) * leanF,
+      }
 
       // Hand target: rest pose at the side of the body (body-relative) ↔
       // on-stone contact, blended. The IK wrist stops 9 cm behind the
@@ -99,17 +110,23 @@ export class BodyRig extends THREE.Group {
       const dir = new THREE.Vector3(contact.dir.x, contact.dir.y, contact.dir.z)
       const wristOnStone = new THREE.Vector3(contact.point.x, contact.point.y, contact.point.z).addScaledVector(dir, -0.09)
       const target = rest.clone().lerp(wristOnStone, h.sm.blend)
+      // Strain tremor: max load makes the arms shiver, subtly.
+      if (load > 0) {
+        const tremor = (Math.sin(this.time * 43 + side * 7) * 0.006 + Math.sin(this.time * 29) * 0.004) * load
+        target.y += tremor
+        target.x += tremor * 0.6
+      }
       const { elbow } = solveTwoBoneIK(shoulder, target, UPPER, FORE, { x: 0, y: -1, z: 0.25 })
 
       h.limbs.clear()
       const S = new THREE.Vector3(shoulder.x, shoulder.y, shoulder.z)
       const E = new THREE.Vector3(elbow.x, elbow.y, elbow.z)
-      h.limbs.add(limb(S, E, 0.045, sleeveMat), limb(E, target, 0.038, skinMat))
+      h.limbs.add(limb(S, E, 0.045, clothMat), limb(E, target, 0.038, skinMat))
       const palmOnStone = new THREE.Vector3(contact.point.x, contact.point.y, contact.point.z).addScaledVector(dir, -0.04)
       h.view.position.copy(rest.clone().lerp(palmOnStone, h.sm.blend))
       // Palm faces along the push direction (toward the sphere center).
       h.view.quaternion.setFromRotationMatrix(new THREE.Matrix4().lookAt(new THREE.Vector3(), dir, new THREE.Vector3(0, 1, 0)))
-      h.view.setLoad(h.sm.phase === HandPhase.Pressing ? input[side] : 0)
+      h.view.setLoad(load)
 
       if (h.sm.phase === HandPhase.Pressing && input[side] > 0.05) {
         // Force only transmits through arms that actually reach: full force at

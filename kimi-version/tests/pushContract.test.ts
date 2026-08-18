@@ -69,7 +69,7 @@ describe('push feel contract', () => {
     pushSeconds(rig, 1, 1, 0.5)
     const x0 = rig.stone.position().x
     pushSeconds(rig, 0, 1, 2.5)
-    expect(rig.stone.position().x - x0).toBeLessThan(-0.2)
+    expect(rig.stone.position().x - x0).toBeLessThan(-0.15)
   })
 
   it('gentle force from rest cannot break away (static threshold)', () => {
@@ -93,7 +93,7 @@ describe('push feel contract', () => {
     const v1 = rig.stone.speed()
     pushSeconds(rig, 1, 1, 1)
     const v2 = rig.stone.speed()
-    expect(v1).toBeGreaterThan(1.0)
+    expect(v1).toBeGreaterThan(0.8)
     expect(v1).toBeLessThan(3.5)
     expect(v2).toBeLessThan(v1 + 1.0) // terminal, not still accelerating hard
   })

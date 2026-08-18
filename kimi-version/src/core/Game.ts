@@ -9,6 +9,7 @@ import { buildDistantRidges } from '../world/distantRidges'
 import { Sky } from '../world/sky'
 import { Lighting } from '../world/lighting'
 import { BodyRig } from '../body/BodyRig'
+import { BodyView } from '../body/BodyView'
 import { CameraRig } from '../camera/CameraRig'
 import { LoopDirector } from '../game/LoopDirector'
 import { buildCrestMarker } from '../world/crestMarker'
@@ -32,6 +33,7 @@ export class Game {
   readonly stone: Stone
   readonly player: Player
   readonly rig = new BodyRig()
+  private readonly bodyView = new BodyView()
   private readonly stoneMesh = new StoneMesh()
   private readonly sky: Sky
   private readonly lighting: Lighting
@@ -69,6 +71,7 @@ export class Game {
     this.player = new Player(this.pw, 0, sz + 6)
     this.scene.add(this.stoneMesh)
     this.scene.add(this.rig)
+    this.scene.add(this.bodyView)
 
     addEventListener('resize', () => {
       this.camera.aspect = innerWidth / innerHeight
@@ -141,10 +144,13 @@ export class Game {
     if (this.wasHeld && !this.stone.held && pressing.length > 0) {
       const stronger = pressing.reduce((a, b) => (a.magnitude >= b.magnitude ? a : b))
       this.dust.burst(stronger.point)
+      this.scrape.puff()
     }
     this.wasHeld = this.stone.held
     const av = this.stone.body.angvel()
     this.scrape.update(Math.hypot(av.x, av.y, av.z), this.stone.speed() > 0.02)
+    const totalForce = pressing.reduce((sum, h) => sum + h.magnitude, 0)
+    this.scrape.setStrain(totalForce / (TUNING.push.maxForcePerHand * 2))
     if (pressing.length > 0) rumble(intent.leftHand, intent.rightHand)
     this.director.update(dt, this.stone.position(), this.stone.speed(), this.player.pose.pos, this.rig.engageAmount() > 0.5, this.rig.anyPressing())
     this.warmthSmoothed += (this.director.warmth() - this.warmthSmoothed) * dt * 0.8
@@ -163,6 +169,7 @@ export class Game {
     }
     this.lastBobPos = { x: p.x, z: p.z }
     const bobAmount = Math.min(this.player.smoothedSpeed / TUNING.player.walkSpeed, 1)
+    this.bodyView.pose(p, this.player.pose.bodyYaw, this.bobPhase, bobAmount, this.rig.engageAmount())
     this.camRig.update(FIXED_DT, this.camera, p, this.player.pose.bodyYaw, this.rig.engageAmount(), this.bobPhase, bobAmount)
     this.sky.setWarmth(this.warmthSmoothed)
     this.dust.update(FIXED_DT)

@@ -1,7 +1,7 @@
 /** Every gameplay/visual tunable in one place. Distances in meters, forces in newtons. */
 export const TUNING = {
   stone: {
-    radius: 1.0,
+    radius: 1.1,
     mass: 220,
     friction: 0.9,
     restitution: 0,
@@ -11,8 +11,8 @@ export const TUNING = {
     holdSlopeDeg: 3.5,
     /** Speed (m/s) under which the static hold may engage. */
     holdSpeedEps: 0.18,
-    /** Kinetic rolling resistance coefficient (decel = k · g); balances gravity at ~atan(k) ≈ 3°. */
-    kineticResistance: 0.05,
+    /** Kinetic rolling resistance coefficient (decel = k · g); balances gravity at ~atan(k) ≈ 2°. */
+    kineticResistance: 0.035,
     /** Extra static resistance force (N) that must be overcome to break away. */
     staticBreakawayForce: 700,
   },
@@ -20,7 +20,7 @@ export const TUNING = {
     /** Force per fully-pressed hand (N); two hands ≈ 1.2× the steepest-pitch hold need. */
     maxForcePerHand: 380,
     /** Hand speed limit (m/s): push force fades as the stone outruns the hands. */
-    handSpeedMax: 1.4,
+    handSpeedMax: 1.2,
     /** Fade band (m/s) above handSpeedMax down to zero force. */
     handSpeedFade: 0.9,
     /** Chest-to-surface distance (m) within which hands may engage. */
@@ -33,7 +33,7 @@ export const TUNING = {
   player: {
     eyeHeight: 1.62,
     /** Capsule radius doubles as the push-stance standoff from the stone surface. */
-    radius: 0.5,
+    radius: 0.45,
     walkSpeed: 3.4,
     engagedWalkSpeed: 2.1,
     turnLerp: 10,
@@ -53,8 +53,6 @@ export const TUNING = {
     pathHalfWidth: 2.2,
     /** Low berm lip at the track's edge (the worn track guides, not walls). */
     bermRise: 0.5,
-    /** Open hillside: beyond the berm the ground falls away per meter factor. */
-    outerFall: 1.6,
     noiseAmplitude: 0.22,
     /** On-path micro relief (m): makes the stone wander, demands hand correction. */
     pathNoiseAmplitude: 0.04,

@@ -35,11 +35,12 @@ describe('heightfield', () => {
     }
   })
 
-  it('worn track: low berm lip at the edge, open fall beyond, small on-path relief', () => {
+  it('worn track: berm lip, shallow swale that rises back, small on-path relief', () => {
     const z = M.frontLength * 0.5
     const center = sampleHeight(0, z)
     expect(sampleHeight(M.pathHalfWidth * 1.9, z)).toBeGreaterThan(center + 0.3) // berm lip
-    expect(sampleHeight(20, z)).toBeLessThan(center - 5) // open hillside falls away
+    expect(sampleHeight(13, z)).toBeLessThan(center - 4) // swale floor
+    expect(sampleHeight(30, z)).toBeGreaterThan(sampleHeight(13, z)) // rises back
     expect(Math.abs(sampleHeight(0.5, z) - center)).toBeLessThan(0.1)
   })
 

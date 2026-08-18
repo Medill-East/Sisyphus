@@ -47,12 +47,17 @@ export function sampleHeight(x: number, z: number): number {
   // On-path micro relief: low long-wavelength bumps so the stone wanders.
   h += M.pathNoiseAmplitude * (0.35 + 0.65 * Math.min(ax / M.pathHalfWidth, 1)) * valueNoise(x * 0.3 + 100, z * 0.3)
   // Worn track on an open hillside: a low berm lip at the track's edge, then
-  // the ground falls away — a slope with a view, not a valley.
+  // the ground falls into a shallow swale and rises again further out — a
+  // wide bowl: open slopes with a view, but nothing (player or stone) is
+  // ever trapped or lost.
   const half = M.pathHalfWidth
   if (ax > half && ax <= half * 2) {
     h += M.bermRise * Math.sin((Math.PI * (ax - half)) / (2 * half))
   } else if (ax > half * 2) {
-    h += M.bermRise - M.outerFall * Math.pow(Math.min((ax - half * 2) / half, 8), 1.25)
+    const u = (ax - half * 2) / half
+    const fall = 5.5 * Math.min(u / 3.9, 1)
+    const rise = 7.5 * Math.pow(Math.max(u - 3.9, 0) / 8, 1.3)
+    h += M.bermRise - fall + rise
   }
   const noiseFade = Math.min(Math.max((ax - M.pathHalfWidth) / M.pathHalfWidth, 0), 1)
   if (noiseFade > 0) {
