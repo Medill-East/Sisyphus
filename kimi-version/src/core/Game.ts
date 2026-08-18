@@ -152,7 +152,6 @@ export class Game {
     if (this.wasHeld && !this.stone.held && pressing.length > 0) {
       const stronger = pressing.reduce((a, b) => (a.magnitude >= b.magnitude ? a : b))
       this.dust.burst(stronger.point)
-      this.scrape.puff()
     }
     this.wasHeld = this.stone.held
     const av = this.stone.body.angvel()

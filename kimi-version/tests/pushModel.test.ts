@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { computeHandContact, computeShoulder, withinReach } from '../src/physics/pushModel'
+import { computeHandContact, computeShoulder, heaveDir, withinReach } from '../src/physics/pushModel'
 import { TUNING } from '../src/core/tuning'
 
 const P = TUNING.push
@@ -36,6 +36,16 @@ describe('pushModel', () => {
     expect(r.dir.x).toBeLessThan(0)
     expect(l.dir.z).toBeLessThan(0) // both hands also push forward (−z, uphill)
     expect(r.dir.z).toBeLessThan(0)
+  })
+
+  it('the heave tilts the push upward along the surface, keeping heading', () => {
+    // Pushing a boulder is a heave up the stone, not a horizontal shove.
+    const l = computeHandContact(CENTER, R, computeShoulder(PLAYER, YAW, -1, P))
+    const h = heaveDir(l.dir, 35)
+    expect(h.y).toBeGreaterThan(l.dir.y) // tilted up
+    expect(h.x).toBeGreaterThan(0) // still pushes the stone rightward
+    expect(h.z).toBeLessThan(0) // still forward
+    expect(Math.hypot(h.x, h.y, h.z)).toBeCloseTo(1, 5)
   })
 
   it('withinReach respects reach distance', () => {

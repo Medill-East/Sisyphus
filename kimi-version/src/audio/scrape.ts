@@ -49,27 +49,6 @@ export class ScrapeAudio {
   /** strain = 0..1 total push effort (both hands / max). */
   setStrain(strain: number): void {
     if (!this.strainGain || !this.ctx) return
-    this.strainGain.gain.setTargetAtTime(Math.min(strain, 1) * 0.4, this.ctx.currentTime, 0.1)
-  }
-
-  /** Short exertion breath on breakaway. */
-  puff(): void {
-    if (!this.ctx) return
-    const dur = 0.28
-    const len = Math.floor(this.ctx.sampleRate * dur)
-    const buf = this.ctx.createBuffer(1, len, this.ctx.sampleRate)
-    const data = buf.getChannelData(0)
-    for (let i = 0; i < len; i++) {
-      const t = i / len
-      data[i] = (Math.random() * 2 - 1) * (1 - t) * (1 - t) * 0.6
-    }
-    const src = this.ctx.createBufferSource()
-    src.buffer = buf
-    const filter = this.ctx.createBiquadFilter()
-    filter.type = 'bandpass'
-    filter.frequency.value = 480
-    filter.Q.value = 0.6
-    src.connect(filter).connect(this.ctx.destination)
-    src.start()
+    this.strainGain.gain.setTargetAtTime(Math.min(strain, 1) * 0.28, this.ctx.currentTime, 0.15)
   }
 }

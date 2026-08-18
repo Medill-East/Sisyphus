@@ -41,11 +41,12 @@ export class CameraRig {
     this.headYaw = clamped.yaw
     this.pitch = clamped.pitch
     this.ease += Math.min(Math.max(engage - this.ease, -c.engageEase * dt), c.engageEase * dt)
+    const e = this.ease * this.ease * (3 - 2 * this.ease) // smoothstep: no camera jumps
 
     // Engage stance: high close-shoulder — pull back and up so the frame keeps
     // hands + stone top + the path ahead, while FOV tightens onto the stone.
-    const back = 0.42 * this.ease
-    const lift = 0.3 * this.ease
+    const back = 0.42 * e
+    const lift = 0.3 * e
     const fwd = { x: -Math.sin(bodyYaw), z: -Math.cos(bodyYaw) }
     const right = { x: Math.cos(bodyYaw), z: -Math.sin(bodyYaw) }
     // Step weight: gentle vertical bob + lateral sway while walking.
@@ -56,8 +57,8 @@ export class CameraRig {
       eyeY + lift + bobY,
       playerPos.z - fwd.z * back + right.z * swayX,
     )
-    camera.rotation.set(this.pitch - 0.3 * this.ease, this.headYaw, 0, 'YXZ')
-    const fov = c.fov + (c.engagedFov - c.fov) * this.ease
+    camera.rotation.set(this.pitch - 0.3 * e, this.headYaw, 0, 'YXZ')
+    const fov = c.fov + (c.engagedFov - c.fov) * e
     if (Math.abs(fov - camera.fov) > 0.01) {
       camera.fov = fov
       camera.updateProjectionMatrix()

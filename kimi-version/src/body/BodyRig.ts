@@ -1,6 +1,6 @@
 import * as THREE from 'three'
 import { TUNING } from '../core/tuning'
-import { computeHandContact, computeShoulder } from '../physics/pushModel'
+import { computeHandContact, computeShoulder, heaveDir } from '../physics/pushModel'
 import { solveTwoBoneIK } from './armIk'
 import { HandView } from './HandView'
 import type { Vec3 } from '../physics/vec3'
@@ -122,7 +122,7 @@ export class BodyRig extends THREE.Group {
       if (h.sm.phase === HandPhase.Pressing && h.sm.pressTime < STROKE) {
         const guard = new THREE.Vector3(
           playerPos.x + fwdX * 0.28 + rightX * side * 0.16,
-          playerPos.y + 1.12,
+          playerPos.y + 0.95,
           playerPos.z + fwdZ * 0.28 + rightZ * side * 0.16,
         )
         const t = h.sm.pressTime / STROKE
@@ -150,10 +150,11 @@ export class BodyRig extends THREE.Group {
       if (h.sm.phase === HandPhase.Pressing && input[side] > 0.05) {
         // Force only transmits through arms that actually reach: full force at
         // the natural stance, fading to zero past full extension. You must
-        // walk into the stone (W) to keep pushing.
+        // walk into the stone (W) to keep pushing. Force runs as a heave up
+        // the stone's surface, not a horizontal shove.
         const reachFade = Math.min(Math.max((0.75 - chestDist) / 0.2, 0), 1)
         if (reachFade > 0) {
-          pressing.push({ side, point: contact.point, dir: contact.dir, magnitude: input[side] * TUNING.push.maxForcePerHand * reachFade })
+          pressing.push({ side, point: contact.point, dir: heaveDir(contact.dir, TUNING.push.heaveDeg), magnitude: input[side] * TUNING.push.maxForcePerHand * reachFade })
         }
       }
     }

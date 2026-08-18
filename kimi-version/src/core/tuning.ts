@@ -19,6 +19,8 @@ export const TUNING = {
   push: {
     /** Force per fully-pressed hand (N); two hands ≈ 1.2× the steepest-pitch hold need. */
     maxForcePerHand: 380,
+    /** The heave: push direction is tilted up along the stone's surface (deg). */
+    heaveDeg: 35,
     /** Hand speed limit (m/s): push force fades as the stone outruns the hands. */
     handSpeedMax: 1.2,
     /** Fade band (m/s) above handSpeedMax down to zero force. */
@@ -45,7 +47,8 @@ export const TUNING = {
     neckYawLimitDeg: 120,
     neckPitchUpDeg: 55,
     neckPitchDownDeg: 40,
-    engageEase: 4.5,
+    /** Engage/disengage camera blend speed — slow enough to feel continuous. */
+    engageEase: 2.2,
   },
   mountain: {
     ridgeHeight: 16,

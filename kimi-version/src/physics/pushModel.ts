@@ -33,6 +33,20 @@ export function computeHandContact(center: Vec3, radius: number, shoulder: Vec3)
   return { point: sub(center, scale(dir, radius)), dir }
 }
 
+/**
+ * The heave: real boulder pushing is not a horizontal shove through the
+ * center — palms land mid-low and the force runs up along the surface,
+ * rolling the stone forward-over. Tilt the push direction upward in its own
+ * vertical plane, preserving the horizontal heading (per-hand veer signs).
+ */
+export function heaveDir(dir: Vec3, liftDeg: number): Vec3 {
+  const flat = Math.hypot(dir.x, dir.z)
+  if (flat < 1e-6) return dir
+  const elev = Math.atan2(dir.y, flat) + (liftDeg * Math.PI) / 180
+  const c = Math.cos(elev)
+  return { x: (dir.x / flat) * c, y: Math.sin(elev), z: (dir.z / flat) * c }
+}
+
 /** Chest-to-surface reach check (horizontal distance to the surface). */
 export function withinReach(center: Vec3, radius: number, chest: Vec3, reach: number): boolean {
   return Math.hypot(chest.x - center.x, chest.z - center.z) - radius < reach

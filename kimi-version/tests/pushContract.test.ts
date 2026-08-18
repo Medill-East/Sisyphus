@@ -2,7 +2,7 @@ import { beforeAll, describe, expect, it } from 'vitest'
 import RAPIER from '@dimforge/rapier3d-compat'
 import { PhysicsWorld } from '../src/physics/PhysicsWorld'
 import { Stone, type PushForce } from '../src/physics/stone'
-import { computeHandContact, computeShoulder } from '../src/physics/pushModel'
+import { computeHandContact, computeShoulder, heaveDir } from '../src/physics/pushModel'
 import { sampleHeight } from '../src/world/heightfield'
 import { TUNING } from '../src/core/tuning'
 
@@ -37,7 +37,7 @@ function pushStep(rig: Rig, left: number, right: number) {
   for (const [side, input] of [[-1, left], [1, right]] as const) {
     if (input <= 0) continue
     const contact = computeHandContact(c, TUNING.stone.radius, computeShoulder(player, 0, side, P))
-    hands.push({ ...contact, magnitude: input * P.maxForcePerHand })
+    hands.push({ ...contact, dir: heaveDir(contact.dir, TUNING.push.heaveDeg), magnitude: input * P.maxForcePerHand })
   }
   rig.stone.applyPush(hands)
   rig.stone.applyResistance(hands.length > 0)
