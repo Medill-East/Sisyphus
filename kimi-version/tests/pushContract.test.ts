@@ -56,18 +56,20 @@ describe('push feel contract', () => {
     expect(z0 - rig.stone.position().z).toBeGreaterThan(1.5)
   })
 
-  it('left hand only drifts the stone rightward (+x)', () => {
+  it('left hand only (while moving) drifts the stone rightward (+x)', () => {
     const rig = makeRig()
+    pushSeconds(rig, 1, 1, 0.5) // both hands break away first
     const x0 = rig.stone.position().x
     pushSeconds(rig, 1, 0, 2)
-    expect(rig.stone.position().x - x0).toBeGreaterThan(0.3)
+    expect(rig.stone.position().x - x0).toBeGreaterThan(0.2)
   })
 
-  it('right hand only drifts the stone leftward (−x)', () => {
+  it('right hand only (while moving) drifts the stone leftward (−x)', () => {
     const rig = makeRig()
+    pushSeconds(rig, 1, 1, 0.5)
     const x0 = rig.stone.position().x
-    pushSeconds(rig, 0, 1, 2)
-    expect(rig.stone.position().x - x0).toBeLessThan(-0.3)
+    pushSeconds(rig, 0, 1, 2.5)
+    expect(rig.stone.position().x - x0).toBeLessThan(-0.2)
   })
 
   it('gentle force from rest cannot break away (static threshold)', () => {

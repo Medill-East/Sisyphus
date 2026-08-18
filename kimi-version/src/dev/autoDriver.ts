@@ -59,8 +59,9 @@ export class AutoDriver implements InputSource {
         if (walkIn) return { ...IDLE_INTENT, move: { x: 0, z: -1 } }
         if (this.rollingBack) return { ...IDLE_INTENT, move: { x, z: 0 } }
         return { ...IDLE_INTENT, move: { x, z: -1 }, leftHand: 1, rightHand: 1 }
-      case 'left': // left hand only — stone visibly deflects right
+      case 'left': // break away with both, then left hand only — stone visibly deflects right
         if (walkIn) return { ...IDLE_INTENT, move: { x: 0, z: -1 } }
+        if (this.time < 2.2) return { ...IDLE_INTENT, move: { x, z: -1 }, leftHand: 1, rightHand: 1 }
         return { ...IDLE_INTENT, move: { x, z: -1 }, leftHand: 1, rightHand: 0 }
       case 'release': // push all the way to the crest
         if (walkIn) return { ...IDLE_INTENT, move: { x: 0, z: -1 } }

@@ -5,19 +5,19 @@ import { TUNING } from '../src/core/tuning'
 const M = TUNING.mountain
 
 describe('heightfield', () => {
-  it('is zero at both feet and ridge height at crest', () => {
-    expect(sampleHeight(0, M.frontLength)).toBeCloseTo(0, 3)
-    expect(sampleHeight(0, -M.backLength)).toBeCloseTo(0, 3)
-    expect(sampleHeight(0, 0)).toBeCloseTo(M.ridgeHeight, 3)
+  it('is (nearly) zero at both feet and ridge height at crest', () => {
+    expect(Math.abs(sampleHeight(0, M.frontLength))).toBeLessThan(0.01)
+    expect(Math.abs(sampleHeight(0, -M.backLength))).toBeLessThan(0.01)
+    expect(sampleHeight(0, 0)).toBeCloseTo(M.ridgeHeight, 1)
   })
 
-  it('descends monotonically away from the ridge on the path', () => {
+  it('descends overall away from the ridge on the path (small relief allowed)', () => {
     for (const side of [1, -1]) {
       const L = side > 0 ? M.frontLength : M.backLength
       let prev = Infinity
       for (let i = 0; i <= 20; i++) {
         const h = sampleHeight(0, side * (i / 20) * L)
-        expect(h).toBeLessThanOrEqual(prev + 1e-6)
+        expect(h).toBeLessThanOrEqual(prev + 0.06) // micro relief, not real uphill
         prev = h
       }
     }
@@ -35,11 +35,11 @@ describe('heightfield', () => {
     }
   })
 
-  it('banks rise beyond the path and noise stays off the path', () => {
+  it('banks rise beyond the path and on-path relief stays small', () => {
     const z = M.frontLength * 0.5
     const center = sampleHeight(0, z)
     expect(sampleHeight(6, z)).toBeGreaterThan(center + 1.0)
-    expect(sampleHeight(0.5, z)).toBeCloseTo(sampleHeight(-0.5, z), 6)
+    expect(Math.abs(sampleHeight(0.5, z) - center)).toBeLessThan(0.1)
   })
 
   it('noise is deterministic', () => {

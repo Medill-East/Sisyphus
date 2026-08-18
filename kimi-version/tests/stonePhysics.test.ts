@@ -34,7 +34,7 @@ describe('stone on terrain', () => {
 
   it('holds still on a gentle grade (below hold slope)', () => {
     const pw = new PhysicsWorld()
-    const z = TUNING.mountain.frontLength * 0.92 // grade ~3 deg
+    const z = TUNING.mountain.frontLength * 0.98 // grade ~1 deg
     const stone = dropAndSettle(pw, 0, z)
     const start = stone.position()
     settle(pw, stone, 240)

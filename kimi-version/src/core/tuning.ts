@@ -8,19 +8,19 @@ export const TUNING = {
     angularDamping: 0.05,
     linearDamping: 0.02,
     /** Below this ground slope (deg) a slow stone is statically held. */
-    holdSlopeDeg: 6,
+    holdSlopeDeg: 3.5,
     /** Speed (m/s) under which the static hold may engage. */
     holdSpeedEps: 0.18,
-    /** Kinetic rolling resistance coefficient (decel = k · g); balances gravity at ~atan(k). */
-    kineticResistance: 0.09,
+    /** Kinetic rolling resistance coefficient (decel = k · g); balances gravity at ~atan(k) ≈ 3°. */
+    kineticResistance: 0.05,
     /** Extra static resistance force (N) that must be overcome to break away. */
-    staticBreakawayForce: 260,
+    staticBreakawayForce: 700,
   },
   push: {
-    /** Force per fully-pressed hand (N). */
-    maxForcePerHand: 950,
+    /** Force per fully-pressed hand (N); two hands ≈ 1.2× the steepest-pitch hold need. */
+    maxForcePerHand: 380,
     /** Hand speed limit (m/s): push force fades as the stone outruns the hands. */
-    handSpeedMax: 2.0,
+    handSpeedMax: 1.4,
     /** Fade band (m/s) above handSpeedMax down to zero force. */
     handSpeedFade: 0.9,
     /** Chest-to-surface distance (m) within which hands may engage. */
@@ -49,10 +49,12 @@ export const TUNING = {
   mountain: {
     ridgeHeight: 16,
     frontLength: 85,
-    backLength: 65,
+    backLength: 72,
     pathHalfWidth: 2.2,
     bankRise: 2.6,
     noiseAmplitude: 0.22,
+    /** On-path micro relief (m): makes the stone wander, demands hand correction. */
+    pathNoiseAmplitude: 0.04,
     worldHalfX: 40,
   },
   loop: {

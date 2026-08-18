@@ -72,8 +72,10 @@ export class Stone {
       return
     }
     this.held = false
-    if (hSpeed > 1e-4) {
+    if (hSpeed > S.holdSpeedEps) {
       // Rolling resistance as deceleration (m/s²): a = k · g, capped to never reverse.
+      // Below holdSpeedEps the static breakaway in applyPush is the resistance model —
+      // applying kinetic drag there too would double-count it and freeze breakaway.
       const decel = S.kineticResistance * G * FIXED_DT
       const scale = Math.min(decel, hSpeed) / hSpeed
       this.body.applyImpulse({ x: -v.x * S.mass * scale, y: 0, z: -v.z * S.mass * scale }, true)
@@ -83,22 +85,22 @@ export class Stone {
   /**
    * Apply this step's per-hand push forces at their contact points.
    * Two honest limits:
-   * - From rest, the static breakaway threshold is subtracted first.
+   * - Static breakaway is binary (Coulomb-style): from rest, total force
+   *   must exceed the threshold or nothing moves; above it, full force
+   *   applies. Below-threshold strain shows as effort, not crawl.
    * - Force fades as the stone outruns the hands along the push direction —
    *   you cannot keep shoving something already rolling away from you.
    */
   applyPush(hands: PushForce[]): void {
-    let scale = 1
     if (this.speed() < S.holdSpeedEps) {
       const total = hands.reduce((sum, h) => sum + h.magnitude, 0)
-      const net = Math.max(total - S.staticBreakawayForce, 0)
-      scale = total > 1e-6 ? net / total : 0
+      if (total <= S.staticBreakawayForce) return
     }
     const v = this.body.linvel()
     for (const h of hands) {
       const vAlong = v.x * h.dir.x + v.y * h.dir.y + v.z * h.dir.z
       const fade = Math.min(Math.max((TUNING.push.handSpeedMax - vAlong) / TUNING.push.handSpeedFade, 0), 1)
-      const impulse = h.magnitude * scale * fade * FIXED_DT
+      const impulse = h.magnitude * fade * FIXED_DT
       if (impulse <= 0) continue
       this.body.applyImpulseAtPoint(
         { x: h.dir.x * impulse, y: h.dir.y * impulse, z: h.dir.z * impulse },

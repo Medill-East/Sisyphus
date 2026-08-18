@@ -84,10 +84,18 @@ export class BodyRig extends THREE.Group {
       h.sm.update(dt, { inReach, input: input[side] })
       h.lastContact = contact.point
 
-      // Hand target: rest pose beside the hip ↔ on-stone contact, blended.
-      // The IK wrist stops 9 cm behind the surface (palm depth); the palm
-      // face itself lands exactly on the contact point.
-      const rest = new THREE.Vector3(shoulder.x + (side === -1 ? -0.05 : 0.05), playerPos.y + 0.85, playerPos.z + 0.1)
+      // Hand target: rest pose at the side of the body (body-relative) ↔
+      // on-stone contact, blended. The IK wrist stops 9 cm behind the
+      // surface (palm depth); the palm face lands exactly on the contact.
+      const fwdX = -Math.sin(bodyYaw)
+      const fwdZ = -Math.cos(bodyYaw)
+      const rightX = Math.cos(bodyYaw)
+      const rightZ = -Math.sin(bodyYaw)
+      const rest = new THREE.Vector3(
+        playerPos.x + rightX * side * 0.26 + fwdX * 0.1,
+        playerPos.y + 0.78,
+        playerPos.z + rightZ * side * 0.26 + fwdZ * 0.1,
+      )
       const dir = new THREE.Vector3(contact.dir.x, contact.dir.y, contact.dir.z)
       const wristOnStone = new THREE.Vector3(contact.point.x, contact.point.y, contact.point.z).addScaledVector(dir, -0.09)
       const target = rest.clone().lerp(wristOnStone, h.sm.blend)

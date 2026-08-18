@@ -11,6 +11,11 @@ export class CameraRig {
   private pitch = 0
   private ease = 0
 
+  /** Current absolute head yaw — free mode drives the player's body yaw. */
+  get yaw(): number {
+    return this.headYaw
+  }
+
   applyLook(dx: number, dy: number): void {
     this.headYaw -= dx * MOUSE_SENS
     this.pitch -= dy * MOUSE_SENS

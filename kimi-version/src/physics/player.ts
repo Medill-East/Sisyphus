@@ -29,12 +29,13 @@ export class Player {
   /** Move with collision; body contact never shoves the stone. */
   move(
     pw: PhysicsWorld,
-    intent: { move: { x: number; z: number }; engaged: boolean; stonePos: { x: number; y: number; z: number } | null },
+    intent: { move: { x: number; z: number }; engaged: boolean; stonePos: { x: number; y: number; z: number } | null; headYaw: number },
     dt: number,
   ): void {
     const next = computeNextPose({
       pos: this.pose.pos,
       bodyYaw: this.pose.bodyYaw,
+      headYaw: intent.headYaw,
       groundY: sampleHeight,
       dt,
       tuning: TUNING.player,

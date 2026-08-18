@@ -117,7 +117,7 @@ export class Game {
     const intent = this.source.poll(dt) ?? IDLE_INTENT
     if (intent.reset) this.resetRun()
     const engaged = this.rig.engageAmount() > 0.5
-    this.player.move(this.pw, { ...intent, engaged, stonePos: this.stone.position() }, dt)
+    this.player.move(this.pw, { ...intent, engaged, stonePos: this.stone.position(), headYaw: this.camRig.yaw }, dt)
     const pressing = this.rig.pose(
       dt,
       this.player.pose.pos,

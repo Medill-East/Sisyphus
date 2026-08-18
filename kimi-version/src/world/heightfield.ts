@@ -44,6 +44,8 @@ export function sampleHeight(x: number, z: number): number {
     h = sideProfile(t)
   }
   const ax = Math.abs(x)
+  // On-path micro relief: low long-wavelength bumps so the stone wanders.
+  h += M.pathNoiseAmplitude * (0.35 + 0.65 * Math.min(ax / M.pathHalfWidth, 1)) * valueNoise(x * 0.3 + 100, z * 0.3)
   if (ax > M.pathHalfWidth) {
     const over = (ax - M.pathHalfWidth) / M.pathHalfWidth
     h += M.bankRise * Math.pow(over, 1.4)
