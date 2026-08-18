@@ -5,7 +5,7 @@ export function buildDistantRidges(): THREE.Group {
   const group = new THREE.Group()
   const plain = new THREE.Mesh(
     new THREE.CircleGeometry(1400, 48),
-    new THREE.MeshBasicMaterial({ color: 0xb3ab94, fog: true }),
+    new THREE.MeshBasicMaterial({ color: 0x9aa06e, fog: true }),
   )
   plain.rotation.x = -Math.PI / 2
   plain.position.y = -14

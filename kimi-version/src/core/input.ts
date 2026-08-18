@@ -31,12 +31,26 @@ export function intentFromKeyboardMouse(keys: Set<string>, mouse: MouseState): I
   }
 }
 
-const DEADZONE = 0.12
+const DEADZONE = 0.18
+const ACTIVATE_THRESHOLD = 0.5
 const STICK_LOOK_SPEED = 600 // "pixels per second" equivalent for shared sensitivity math
 const dz = (v: number) => (Math.abs(v) < DEADZONE ? 0 : v)
 
+/**
+ * A gamepad only earns input after explicit activation (a button press or a
+ * full stick deflection). Before that, worn-stick drift must not creep the
+ * player forward on its own.
+ */
+let padActivated = false
+
 export function intentFromGamepad(pad: Gamepad | null, dt = 1 / 60): InputIntent {
   if (!pad) return { ...IDLE_INTENT }
+  if (!padActivated) {
+    const anyButton = pad.buttons.some((b) => b.pressed)
+    const anyStick = pad.axes.some((a) => Math.abs(a) > ACTIVATE_THRESHOLD)
+    if (anyButton || anyStick) padActivated = true
+    else return { ...IDLE_INTENT }
+  }
   return {
     move: { x: dz(pad.axes[0] ?? 0), z: dz(pad.axes[1] ?? 0) },
     lookDelta: {

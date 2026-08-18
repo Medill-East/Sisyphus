@@ -23,7 +23,7 @@ export function buildScatter(): THREE.Group {
   // Grass tufts: 3-blade cone clusters, off-track only.
   const tuftGeo = new THREE.ConeGeometry(0.05, 0.42, 4)
   tuftGeo.translate(0, 0.21, 0)
-  const tuftMat = new THREE.MeshStandardMaterial({ color: 0x8a8547, roughness: 1 })
+  const tuftMat = new THREE.MeshStandardMaterial({ color: 0x5f7038, roughness: 1 })
   const TUFTS = 900
   const tufts = new THREE.InstancedMesh(tuftGeo, tuftMat, TUFTS * 3)
   const m4 = new THREE.Matrix4()
@@ -107,6 +107,34 @@ export function buildScatter(): THREE.Group {
   trunks.castShadow = true
   crowns.castShadow = true
   group.add(trunks, crowns)
+
+  // Crag outcrops: big dark rocks massed near the crest, a few outliers below.
+  const cragGeo = new THREE.IcosahedronGeometry(1, 1)
+  const cragPos = cragGeo.attributes.position
+  const cv = new THREE.Vector3()
+  for (let i = 0; i < cragPos.count; i++) {
+    cv.set(cragPos.getX(i), cragPos.getY(i), cragPos.getZ(i))
+    cv.multiplyScalar(1 + (Math.sin(cv.x * 5.1) * Math.sin(cv.y * 4.3) * Math.sin(cv.z * 6.2)) * 0.22)
+    cragPos.setXYZ(i, cv.x, cv.y, cv.z)
+  }
+  cragGeo.computeVertexNormals()
+  const cragMat = new THREE.MeshStandardMaterial({ color: 0x6e6a64, roughness: 1, flatShading: true })
+  const CRAGS = 26
+  const crags = new THREE.InstancedMesh(cragGeo, cragMat, CRAGS)
+  let ci = 0
+  for (let i = 0; i < CRAGS; i++) {
+    const nearCrest = rng() < 0.65
+    const z = nearCrest ? (rng() - 0.5) * 18 : zMin + rng() * (zMax - zMin)
+    const x = (M.pathHalfWidth + 1.2 + rng() * 8) * (rng() < 0.5 ? -1 : 1)
+    const s = 1.1 + rng() * 2.4
+    eu.set(rng() * Math.PI, rng() * Math.PI, rng() * Math.PI)
+    q.setFromEuler(eu)
+    m4.compose(new THREE.Vector3(x, sampleHeight(x, z) + s * 0.2, z), q, new THREE.Vector3(s, s * (0.6 + rng() * 0.5), s))
+    crags.setMatrixAt(ci++, m4)
+  }
+  crags.count = ci
+  crags.castShadow = true
+  group.add(crags)
 
   return group
 }

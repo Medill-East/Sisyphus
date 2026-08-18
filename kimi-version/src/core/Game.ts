@@ -14,6 +14,7 @@ import { CameraRig } from '../camera/CameraRig'
 import { LoopDirector } from '../game/LoopDirector'
 import { buildCrestMarker } from '../world/crestMarker'
 import { Dust } from '../render/dust'
+import { Trail } from '../world/trail'
 import { ScrapeAudio } from '../audio/scrape'
 import { rumble } from './rumble'
 import type { Vec3 } from '../physics/vec3'
@@ -45,6 +46,7 @@ export class Game {
   readonly scrape = new ScrapeAudio()
   private warmthSmoothed = 0
   private readonly dust = new Dust()
+  private readonly trail = new Trail()
   private wasHeld = false
 
   constructor(parent: HTMLElement, private readonly source: InputSource, readonly camRig: CameraRig = new CameraRig()) {
@@ -63,6 +65,7 @@ export class Game {
     this.scene.add(buildDistantRidges())
     this.scene.add(buildCrestMarker())
     this.scene.add(this.dust)
+    this.scene.add(this.trail.mesh)
     this.sky = new Sky(this.scene)
     this.lighting = new Lighting(this.scene)
 
@@ -120,7 +123,7 @@ export class Game {
     this.stone.body.setTranslation({ x: 0, y: sampleHeight(0, z) + TUNING.stone.radius + 0.05, z }, true)
     this.stone.body.setLinvel({ x: 0, y: 0, z: 0 }, true)
     this.stone.body.setAngvel({ x: 0, y: 0, z: 0 }, true)
-    this.player.pose = { pos: { x: 0, y: sampleHeight(0, z + side * 6), z: z + side * 6 }, bodyYaw: 0 }
+    this.player.teleport(0, z + side * 6, 0)
   }
 
   fixedStep(dt: number): void {
@@ -140,6 +143,11 @@ export class Game {
     this.stone.applyPush(pressing)
     this.stone.applyResistance(pressing.length > 0)
     this.pw.step()
+    // The record of labor: stamp the trail wherever the stone truly rolls.
+    {
+      const sp = this.stone.position()
+      if (this.stone.speed() > 0.15) this.trail.record(sp.x, sp.z)
+    }
     // Breakaway beat: held → moving under force puffs grit at the stronger hand.
     if (this.wasHeld && !this.stone.held && pressing.length > 0) {
       const stronger = pressing.reduce((a, b) => (a.magnitude >= b.magnitude ? a : b))

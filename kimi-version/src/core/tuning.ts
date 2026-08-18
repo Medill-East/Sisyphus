@@ -28,7 +28,8 @@ export const TUNING = {
     /** Hysteresis multiplier for staying engaged. */
     reachHysteresis: 1.18,
     shoulderHeight: 1.32,
-    shoulderHalfWidth: 0.24,
+    /** Wider shoulders give single-hand correction real lateral authority. */
+    shoulderHalfWidth: 0.3,
   },
   player: {
     eyeHeight: 1.62,

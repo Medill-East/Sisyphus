@@ -12,6 +12,8 @@ export class Player {
   pose: PlayerPose
   /** Smoothed speed (m/s) — gives the body mass: starts and stops are not instant. */
   smoothedSpeed = 0
+  /** Smoothed ground height — kills ratcheting from path micro relief. */
+  private smoothY: number | null = null
 
   private static readonly CENTER_OFFSET = 0.9 + TUNING.player.radius + 0.04
 
@@ -26,6 +28,14 @@ export class Player {
     )
     this.ctrl = pw.world.createCharacterController(0.02)
     this.ctrl.setApplyImpulsesToDynamicBodies(false) // pushing only happens through hands
+  }
+
+  /** Teleport (debug reset): resets pose and all smoothing state. */
+  teleport(x: number, z: number, yaw = 0): void {
+    const y = sampleHeight(x, z)
+    this.pose = { pos: { x, y, z }, bodyYaw: yaw }
+    this.smoothY = null
+    this.smoothedSpeed = 0
   }
 
   /** Move with collision; body contact never shoves the stone. */
@@ -49,6 +59,10 @@ export class Player {
       tuning: TUNING.player,
       intent,
     })
+    // Vertical follow is smoothed: micro relief must not ratchet the walk.
+    if (this.smoothY === null) this.smoothY = next.pos.y
+    this.smoothY += (next.pos.y - this.smoothY) * Math.min(14 * dt, 1)
+    next.pos.y = this.smoothY
     const delta = {
       x: next.pos.x - this.pose.pos.x,
       y: next.pos.y - this.pose.pos.y,

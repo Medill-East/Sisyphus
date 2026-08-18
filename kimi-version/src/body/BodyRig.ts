@@ -18,6 +18,8 @@ const FORE = 0.28
 export class HandStateMachine {
   phase = HandPhase.Off
   blend = 0 // 0 lowered → 1 on-stone
+  /** Seconds since the current press started (drives the push stroke). */
+  pressTime = 0
 
   update(dt: number, s: { inReach: boolean; input: number }): void {
     if (!s.inReach) {
@@ -29,6 +31,8 @@ export class HandStateMachine {
     } else if (this.phase === HandPhase.Pressing) {
       this.phase = HandPhase.Raising
     }
+    if (this.phase === HandPhase.Pressing && s.input > 0.05) this.pressTime += dt
+    else this.pressTime = 0
     const target = this.phase === HandPhase.Off ? 0 : 1
     const rate = this.phase === HandPhase.Off ? 3.5 : 5
     this.blend += Math.min(Math.max(target - this.blend, -rate * dt), rate * dt)
@@ -109,7 +113,23 @@ export class BodyRig extends THREE.Group {
       )
       const dir = new THREE.Vector3(contact.dir.x, contact.dir.y, contact.dir.z)
       const wristOnStone = new THREE.Vector3(contact.point.x, contact.point.y, contact.point.z).addScaledVector(dir, -0.09)
-      const target = rest.clone().lerp(wristOnStone, h.sm.blend)
+      const palmOnStone = new THREE.Vector3(contact.point.x, contact.point.y, contact.point.z).addScaledVector(dir, -0.04)
+      let target = rest.clone().lerp(wristOnStone, h.sm.blend)
+      let palmTarget = rest.clone().lerp(palmOnStone, h.sm.blend)
+      // Push stroke: on press, the hand visibly thrusts from in front of the
+      // chest up-and-forward onto the stone before sustaining — the "推".
+      const STROKE = 0.22
+      if (h.sm.phase === HandPhase.Pressing && h.sm.pressTime < STROKE) {
+        const guard = new THREE.Vector3(
+          playerPos.x + fwdX * 0.28 + rightX * side * 0.16,
+          playerPos.y + 1.12,
+          playerPos.z + fwdZ * 0.28 + rightZ * side * 0.16,
+        )
+        const t = h.sm.pressTime / STROKE
+        const ease = 1 - Math.pow(1 - t, 3)
+        target = guard.clone().lerp(wristOnStone, ease)
+        palmTarget = guard.lerp(palmOnStone, ease)
+      }
       // Strain tremor: max load makes the arms shiver, subtly.
       if (load > 0) {
         const tremor = (Math.sin(this.time * 43 + side * 7) * 0.006 + Math.sin(this.time * 29) * 0.004) * load
@@ -122,8 +142,7 @@ export class BodyRig extends THREE.Group {
       const S = new THREE.Vector3(shoulder.x, shoulder.y, shoulder.z)
       const E = new THREE.Vector3(elbow.x, elbow.y, elbow.z)
       h.limbs.add(limb(S, E, 0.045, clothMat), limb(E, target, 0.038, skinMat))
-      const palmOnStone = new THREE.Vector3(contact.point.x, contact.point.y, contact.point.z).addScaledVector(dir, -0.04)
-      h.view.position.copy(rest.clone().lerp(palmOnStone, h.sm.blend))
+      h.view.position.copy(palmTarget)
       // Palm faces along the push direction (toward the sphere center).
       h.view.quaternion.setFromRotationMatrix(new THREE.Matrix4().lookAt(new THREE.Vector3(), dir, new THREE.Vector3(0, 1, 0)))
       h.view.setLoad(load)

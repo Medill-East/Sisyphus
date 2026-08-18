@@ -10,6 +10,12 @@ export class HumanSource implements InputSource {
   constructor(el: HTMLElement, private readonly cam: CameraRig) {
     addEventListener('keydown', (e) => this.keys.add(e.code))
     addEventListener('keyup', (e) => this.keys.delete(e.code))
+    // Stuck-key guard: losing focus or pointer lock mid-hold must not leave
+    // phantom keys pressed (that reads as "the character creeps on its own").
+    addEventListener('blur', () => this.keys.clear())
+    document.addEventListener('pointerlockchange', () => {
+      if (!document.pointerLockElement) this.keys.clear()
+    })
     el.addEventListener('click', () => el.requestPointerLock())
     addEventListener('mousemove', (e) => {
       if (document.pointerLockElement) {
