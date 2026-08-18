@@ -16,19 +16,24 @@ export class AutoDriver implements InputSource {
   private stone: Vec3 | null = null
   private self: Vec3 | null = null
   private lastStoneZ: number | null = null
+  private lastStoneX: number | null = null
+  private stoneVx = 0
   private rollbackWindow = 0
 
   constructor(private readonly beat: string, private readonly duration: number) {}
 
   /** Called by Game each fixed step before poll. */
   sense(stonePos: Vec3, playerPos: Vec3): void {
+    if (this.lastStoneX !== null) this.stoneVx = this.stoneVx * 0.9 + (stonePos.x - this.lastStoneX) * 60 * 0.1
+    this.lastStoneX = stonePos.x
     this.stone = stonePos
     this.self = playerPos
   }
 
   private get trackingX(): number {
     if (!this.stone || !this.self) return 0
-    return Math.max(-1, Math.min(1, (this.stone.x - this.self.x) * 0.8))
+    const aim = this.stone.x + this.stoneVx * 0.4 - this.self.x
+    return Math.max(-1, Math.min(1, aim * 1.2))
   }
 
   /** True while the stone is rolling back downhill (>0.8 m in the last second). */
