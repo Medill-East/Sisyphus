@@ -177,7 +177,7 @@ export class Game {
     this.lastBobPos = { x: p.x, z: p.z }
     const bobAmount = Math.min(this.player.smoothedSpeed / TUNING.player.walkSpeed, 1)
     this.bodyView.pose(p, this.player.pose.bodyYaw, this.bobPhase, bobAmount, this.rig.engageAmount())
-    this.camRig.update(FIXED_DT, this.camera, p, this.player.pose.bodyYaw, this.rig.engageAmount(), this.bobPhase, bobAmount)
+    this.camRig.update(FIXED_DT, this.camera, p, this.player.pose.bodyYaw, this.rig.engageAmount(), this.rig.anyPressing(), this.bobPhase, bobAmount)
     this.sky.setWarmth(this.warmthSmoothed)
     this.dust.update(FIXED_DT)
     this.lighting.follow(p.x, p.z)

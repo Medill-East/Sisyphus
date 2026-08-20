@@ -16,3 +16,13 @@ export function clampHead(headYaw: number, pitch: number, bodyYaw: number, L: Ne
     pitch: clamp(pitch, -rad(L.pitchDownDeg), rad(L.pitchUpDeg)),
   }
 }
+
+/** Interpolate neck limits: t=0 free walking, t=1 pressing a divine boulder. */
+export function tightenNeckLimits(base: NeckLimits, tight: NeckLimits, t: number): NeckLimits {
+  const lerp = (a: number, b: number) => a + (b - a) * t
+  return {
+    yawDeg: lerp(base.yawDeg, tight.yawDeg),
+    pitchUpDeg: lerp(base.pitchUpDeg, tight.pitchUpDeg),
+    pitchDownDeg: lerp(base.pitchDownDeg, tight.pitchDownDeg),
+  }
+}

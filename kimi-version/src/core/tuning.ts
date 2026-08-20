@@ -43,12 +43,18 @@ export const TUNING = {
   },
   camera: {
     fov: 62,
-    engagedFov: 55,
+    /** While on the stone the view narrows: the boulder dominates the frame. */
+    engagedFov: 50,
     neckYawLimitDeg: 120,
     neckPitchUpDeg: 55,
     neckPitchDownDeg: 40,
     /** Engage/disengage camera blend speed — slow enough to feel continuous. */
     engageEase: 2.2,
+    /** While pressing: the neck barely turns — no sightseeing under full strain. */
+    pressYawLimitDeg: 35,
+    pressPitchUpDeg: 25,
+    pressPitchDownDeg: 30,
+    pressEaseRate: 2.5,
   },
   mountain: {
     ridgeHeight: 16,
